@@ -2,7 +2,12 @@ import {
   AIChatAgent,
   type OnChatMessageOptions
 } from "@cloudflare/ai-chat";
-import { convertToModelMessages, streamText } from "ai";
+import {
+  convertToModelMessages,
+  pruneMessages,
+  stepCountIs,
+  streamText
+} from "ai";
 import { callable, routeAgentRequest } from "agents";
 import { createWorkersAI } from "workers-ai-provider";
 import {
@@ -10,6 +15,12 @@ import {
   CHAT_STREAM_STALL_TIMEOUT_MS,
   MAX_PERSISTED_CHAT_MESSAGES
 } from "./agent/chat-config";
+import {
+  MAX_MODEL_CONTEXT_MESSAGES,
+  MAX_OUTPUT_TOKENS,
+  MAX_TOOL_STEPS,
+  selectRecentChatMessages
+} from "./agent/limits";
 import { BIDDR_MODEL_ID, BIDDR_SYSTEM_PROMPT } from "./agent/model";
 import { strategyPreferencesSchema } from "./agent/schemas";
 import {
@@ -73,15 +84,26 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
     options?: OnChatMessageOptions
   ) {
     const workersai = createWorkersAI({ binding: this.env.AI });
+    const recentMessages = selectRecentChatMessages(
+      this.messages,
+      MAX_MODEL_CONTEXT_MESSAGES
+    );
+    const modelMessages = pruneMessages({
+      messages: await convertToModelMessages(recentMessages),
+      reasoning: "before-last-message",
+      toolCalls: "before-last-2-messages"
+    });
     const result = streamText({
       model: workersai(BIDDR_MODEL_ID, {
         sessionAffinity: this.sessionAffinity
       }),
       system: BIDDR_SYSTEM_PROMPT,
-      messages: await convertToModelMessages(this.messages),
+      messages: modelMessages,
       tools: createAuctionTools({
         getAuctionState: () => this.state.auction
       }),
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      stopWhen: stepCountIs(MAX_TOOL_STEPS),
       ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
     });
 

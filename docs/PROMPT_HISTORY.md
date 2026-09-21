@@ -320,3 +320,35 @@ The user approved pointer 5 after committing persistent and resumable chat.
 
 Phase 3 pointer 5 is complete. The multi-step loop and token/output bounds remain
 the next separate pointer. Work is paused pending user approval.
+
+## Session 11 — Phase 3, pointer 6: Model execution bounds
+
+### User approval
+
+The user approved pointer 6 after committing the grounded read and analysis
+tools.
+
+### AI actions
+
+- Bounded each model turn to six tool/generation steps with `stepCountIs(6)`.
+- Capped generated output at 768 tokens per step.
+- Limited model context to the latest 24 persisted chat messages while retaining
+  up to 100 messages in SQLite for reconnect and user history.
+- Ensured a sliced context begins at a user message when possible instead of
+  sending an orphaned leading assistant message.
+- Pruned old reasoning and tool-call material before inference to reduce token
+  usage without deleting persisted chat history.
+- Added tests for all numeric bounds, immutable selection, recent-message
+  retention, role-safe window starts, and invalid limit rejection.
+
+### Verification result
+
+- Complete `npm run check` gate passed.
+- ESLint and TypeScript passed.
+- Vitest passed 41 of 41 tests.
+- Worker and client production bundles passed.
+
+### Pointer result
+
+Phase 3 pointer 6 is complete. The approval-gated bid mutation remains the next
+separate pointer. Work is paused pending user approval.

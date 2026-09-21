@@ -105,7 +105,7 @@ and documented rather than silently bypassed.
 - [x] Persistent auction state and strategy preferences.
 - [x] Persistent chat messages and resumable streaming.
 - [x] Typed, Zod-validated read and analysis tools.
-- [ ] Bounded tool loop and output limits.
+- [x] Bounded tool loop and output limits.
 - [ ] Approval-gated `commitSimulatedBid` tool.
 - [ ] Deterministic fallback for inference errors and exhausted quota.
 - [ ] Agent-level tests for tools, state mutation, and approval behavior.
