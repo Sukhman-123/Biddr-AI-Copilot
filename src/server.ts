@@ -5,6 +5,11 @@ import {
 import { convertToModelMessages, streamText } from "ai";
 import { callable, routeAgentRequest } from "agents";
 import { createWorkersAI } from "workers-ai-provider";
+import {
+  CHAT_RECOVERY_CONFIG,
+  CHAT_STREAM_STALL_TIMEOUT_MS,
+  MAX_PERSISTED_CHAT_MESSAGES
+} from "./agent/chat-config";
 import { BIDDR_MODEL_ID, BIDDR_SYSTEM_PROMPT } from "./agent/model";
 import { strategyPreferencesSchema } from "./agent/schemas";
 import {
@@ -24,8 +29,9 @@ import type { StrategyPreferences } from "./domain";
  */
 export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
   initialState = createInitialAgentState();
-  maxPersistedMessages = 100;
-  chatRecovery = true;
+  maxPersistedMessages = MAX_PERSISTED_CHAT_MESSAGES;
+  chatRecovery = CHAT_RECOVERY_CONFIG;
+  chatStreamStallTimeoutMs = CHAT_STREAM_STALL_TIMEOUT_MS;
 
   @callable()
   getSnapshot(): BiddrAgentState {

@@ -255,3 +255,35 @@ The user approved pointer 3 after committing the Workers AI configuration.
 
 Phase 3 pointer 3 is complete. Chat message persistence and resumable streaming
 remain the next separate pointer. Work is paused pending user approval.
+
+## Session 9 — Phase 3, pointer 4: Persistent and resumable chat
+
+### User approval
+
+The user approved pointer 4 after committing persistent auction and strategy
+state.
+
+### AI actions
+
+- Retained `AIChatAgent` as the message owner so chat messages are stored in the
+  Agent's SQLite-backed history and streamed through its resumable protocol.
+- Capped persisted chat history at 100 messages independently of model-context
+  pruning.
+- Replaced boolean recovery with an explicit durable recovery policy: bounded
+  attempts, no-progress timeout, work budget, OOM retry budget, and a safe
+  terminal message.
+- Added a 60-second inter-chunk watchdog so a stalled model stream enters the
+  SDK recovery path instead of leaving the interface waiting indefinitely.
+- Added configuration tests for storage and recovery bounds.
+
+### Verification result
+
+- Complete `npm run check` gate passed.
+- ESLint and TypeScript passed.
+- Vitest passed 30 of 30 tests.
+- Worker and client production bundles passed.
+
+### Pointer result
+
+Phase 3 pointer 4 is complete. Typed model tools were not added. Work is paused
+pending user approval for pointer 5.
