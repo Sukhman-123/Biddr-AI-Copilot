@@ -104,7 +104,7 @@ and documented rather than silently bypassed.
 - [x] Workers AI provider configured for the selected Llama model.
 - [x] Persistent auction state and strategy preferences.
 - [x] Persistent chat messages and resumable streaming.
-- [ ] Typed, Zod-validated read and analysis tools.
+- [x] Typed, Zod-validated read and analysis tools.
 - [ ] Bounded tool loop and output limits.
 - [ ] Approval-gated `commitSimulatedBid` tool.
 - [ ] Deterministic fallback for inference errors and exhausted quota.

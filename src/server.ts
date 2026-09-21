@@ -20,6 +20,7 @@ import {
   resetAgentState,
   type BiddrAgentState
 } from "./agent/state";
+import { createAuctionTools } from "./agent/tools";
 import type { StrategyPreferences } from "./domain";
 
 /**
@@ -78,6 +79,9 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
       }),
       system: BIDDR_SYSTEM_PROMPT,
       messages: await convertToModelMessages(this.messages),
+      tools: createAuctionTools({
+        getAuctionState: () => this.state.auction
+      }),
       ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
     });
 

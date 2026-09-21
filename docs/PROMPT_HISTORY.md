@@ -287,3 +287,36 @@ state.
 
 Phase 3 pointer 4 is complete. Typed model tools were not added. Work is paused
 pending user approval for pointer 5.
+
+## Session 10 — Phase 3, pointer 5: Grounded read and analysis tools
+
+### User approval
+
+The user approved pointer 5 after committing persistent and resumable chat.
+
+### AI actions
+
+- Added six server-side model tools: `getAuctionState`, `getCurrentPlayer`,
+  `getTeamComposition`, `listRemainingPlayers`, `analyzeBid`, and `getStrategy`.
+- Used strict Zod schemas for every tool input, including known-role filtering,
+  integer limits, upper/lower bounds, defaults, and rejection of extra fields.
+- Made every handler read state at execution time so a later tool call cannot use
+  an auction snapshot captured before another transition.
+- Returned bounded summaries rather than the entire persisted state, while
+  retaining the transparent numerical factors returned by the deterministic
+  recommendation engine.
+- Wired the tools into `streamText` without adding any state-changing tool.
+- Added schema, tool-surface, grounding, fresh-state, filtering, bounding, and
+  authoritative-analysis tests.
+
+### Verification result
+
+- Complete `npm run check` gate passed.
+- ESLint and TypeScript passed.
+- Vitest passed 37 of 37 tests.
+- Worker and client production bundles passed with the tools included.
+
+### Pointer result
+
+Phase 3 pointer 5 is complete. The multi-step loop and token/output bounds remain
+the next separate pointer. Work is paused pending user approval.
