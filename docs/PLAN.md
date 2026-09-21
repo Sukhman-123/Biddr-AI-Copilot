@@ -102,7 +102,7 @@ and documented rather than silently bypassed.
 
 - [x] `BiddrCopilotAgent` implemented with `AIChatAgent`.
 - [x] Workers AI provider configured for the selected Llama model.
-- [ ] Persistent auction state and strategy preferences.
+- [x] Persistent auction state and strategy preferences.
 - [ ] Persistent chat messages and resumable streaming.
 - [ ] Typed, Zod-validated read and analysis tools.
 - [ ] Bounded tool loop and output limits.

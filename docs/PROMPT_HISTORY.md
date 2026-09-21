@@ -222,3 +222,36 @@ message after each completed pointer.
 Phase 3 pointer 2 is complete. Persistent application state and tool definitions
 were not added in this pointer. Work is paused pending user approval for pointer
 3.
+
+## Session 8 — Phase 3, pointer 3: Persistent auction state
+
+### User approval
+
+The user approved pointer 3 after committing the Workers AI configuration.
+
+### AI actions
+
+- Added validated strategy-preference schemas with strict object handling,
+  bounded reserve percentages, enumerated risk tolerance, known roles, and
+  duplicate-role rejection.
+- Added pure Agent-state transitions for remembering strategy, passing a player,
+  advancing a lot, and resetting the demo.
+- Added callable Agent methods that apply those transitions and persist them via
+  `this.setState()`, which stores and broadcasts Agent state through the
+  SQLite-backed Durable Object runtime.
+- Kept bid commitment unavailable so no callable method can bypass the future
+  human-approval boundary.
+- Added serialization and transition tests for strategy, auction progression,
+  purse stability, reset behavior, and malformed inputs.
+
+### Verification result
+
+- ESLint and TypeScript passed.
+- Vitest passed 27 of 27 tests.
+- The callable decorators compiled successfully in both production Worker and
+  client builds.
+
+### Pointer result
+
+Phase 3 pointer 3 is complete. Chat message persistence and resumable streaming
+remain the next separate pointer. Work is paused pending user approval.
