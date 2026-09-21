@@ -1,12 +1,17 @@
 import { AIChatAgent } from "@cloudflare/ai-chat";
 import { routeAgentRequest } from "agents";
+import {
+  createInitialAgentState,
+  type BiddrAgentState
+} from "./agent/state";
 
 /**
  * The stateful Biddr agent is intentionally a foundation-only shell in Phase 1.
  * Auction state, model tools, and streaming responses are introduced in Phases
  * 2 and 3 after the deterministic domain engine exists.
  */
-export class BiddrCopilotAgent extends AIChatAgent<Env> {
+export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
+  initialState = createInitialAgentState();
   maxPersistedMessages = 100;
   chatRecovery = true;
 
@@ -28,4 +33,3 @@ export default {
     );
   }
 } satisfies ExportedHandler<Env>;
-

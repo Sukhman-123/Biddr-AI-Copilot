@@ -163,3 +163,30 @@ the next phase.
 
 Phase 2 is complete. No Agent or client integration was added during this phase.
 Phase 3 may begin after the completed phases are committed and pushed.
+
+## Session 6 — Phase 3, pointer 1: Agent foundation
+
+### User direction
+
+The user clarified that each Phase 3 pointer must be completed, reported, and
+explicitly approved before work starts on the next pointer.
+
+### AI actions
+
+- Typed `BiddrCopilotAgent` as `AIChatAgent<Env, BiddrAgentState>`.
+- Added a versioned Agent state envelope containing an isolated deterministic
+  auction snapshot and a bounded-action ID collection for later guarded writes.
+- Kept the existing chat-history cap and resumable-chat recovery configuration.
+- Isolated the initial-state factory from Cloudflare runtime imports so it can be
+  verified in the standard unit-test environment.
+
+### Verification result
+
+- ESLint passed with zero warnings.
+- TypeScript type-check passed.
+- Vitest passed 21 of 21 tests, including the new Agent-state isolation test.
+
+### Pointer result
+
+Phase 3 pointer 1 is complete. No Workers AI model or tools were added; work is
+paused pending user approval to begin pointer 2.
