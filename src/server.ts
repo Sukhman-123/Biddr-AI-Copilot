@@ -1,5 +1,11 @@
-import { AIChatAgent } from "@cloudflare/ai-chat";
+import {
+  AIChatAgent,
+  type OnChatMessageOptions
+} from "@cloudflare/ai-chat";
+import { convertToModelMessages, streamText } from "ai";
 import { routeAgentRequest } from "agents";
+import { createWorkersAI } from "workers-ai-provider";
+import { BIDDR_MODEL_ID, BIDDR_SYSTEM_PROMPT } from "./agent/model";
 import {
   createInitialAgentState,
   type BiddrAgentState
@@ -15,13 +21,21 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
   maxPersistedMessages = 100;
   chatRecovery = true;
 
-  async onChatMessage() {
-    return Response.json(
-      {
-        error: "The Biddr copilot will be connected in Phase 3."
-      },
-      { status: 503 }
-    );
+  async onChatMessage(
+    _onFinish: unknown,
+    options?: OnChatMessageOptions
+  ) {
+    const workersai = createWorkersAI({ binding: this.env.AI });
+    const result = streamText({
+      model: workersai(BIDDR_MODEL_ID, {
+        sessionAffinity: this.sessionAffinity
+      }),
+      system: BIDDR_SYSTEM_PROMPT,
+      messages: await convertToModelMessages(this.messages),
+      ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
+    });
+
+    return result.toUIMessageStreamResponse();
   }
 }
 
