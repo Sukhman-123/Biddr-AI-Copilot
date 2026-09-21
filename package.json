@@ -1,0 +1,64 @@
+{
+  "name": "biddr-ai-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A stateful cricket-auction simulator and AI strategist built on Cloudflare Agents",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "npm@12.0.2",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "start": "vite dev",
+    "build": "vite build",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types env.d.ts",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "check": "npm run lint && npm run typecheck && npm run test:run && npm run build"
+  },
+  "dependencies": {
+    "@cloudflare/ai-chat": "^0.9.3",
+    "@phosphor-icons/react": "^2.1.10",
+    "agents": "^0.17.4",
+    "ai": "^6.0.197",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "workers-ai-provider": "^3.2.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^8.0.2",
+    "@cloudflare/vite-plugin": "^1.46.0",
+    "@eslint/js": "^9.39.4",
+    "@rolldown/plugin-babel": "^0.2.3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "jsdom": "^28.1.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.57.1",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.113.0"
+  },
+  "allowScripts": {
+    "core-js-pure@3.50.0": true,
+    "esbuild@0.28.1": true,
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true,
+    "workerd@1.20260918.1": true
+  }
+}

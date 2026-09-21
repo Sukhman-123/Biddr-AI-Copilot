@@ -1,0 +1,19 @@
+{
+  "extends": "agents/tsconfig",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "types": ["node", "vite/client", "@testing-library/jest-dom"],
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "include": [
+    "src",
+    "test",
+    "env.d.ts",
+    "eslint.config.js",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
+}
+
