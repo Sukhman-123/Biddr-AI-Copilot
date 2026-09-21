@@ -4,11 +4,25 @@ import {
   passAgentCurrentPlayer
 } from "../../src/agent/state";
 import {
+  commitSimulatedBidInputSchema,
   createAuctionToolHandlers,
   createAuctionTools,
   listRemainingPlayersInputSchema
 } from "../../src/agent/tools";
-import { analyzeBid, createInitialAuctionState } from "../../src/domain";
+import { analyzeBid } from "../../src/domain";
+
+function createContext() {
+  let state = createInitialAgentState();
+  return {
+    context: {
+      getAgentState: () => state,
+      setAgentState: (nextState: typeof state) => {
+        state = nextState;
+      }
+    },
+    getState: () => state
+  };
+}
 
 describe("auction tool schemas", () => {
   it("accepts bounded role filters and supplies the default limit", () => {
@@ -30,16 +44,31 @@ describe("auction tool schemas", () => {
       listRemainingPlayersInputSchema.parse({ limit: 2, injected: true })
     ).toThrow();
   });
+
+  it("accepts only positive whole-lakh simulated bids", () => {
+    expect(commitSimulatedBidInputSchema.parse({ amountLakh: 260 })).toEqual({
+      amountLakh: 260
+    });
+    expect(() =>
+      commitSimulatedBidInputSchema.parse({ amountLakh: 260.5 })
+    ).toThrow();
+    expect(() =>
+      commitSimulatedBidInputSchema.parse({ amountLakh: -260 })
+    ).toThrow();
+    expect(() =>
+      commitSimulatedBidInputSchema.parse({ amountLakh: 260, actionId: "fake" })
+    ).toThrow();
+  });
 });
 
 describe("deterministic auction tool handlers", () => {
   it("exposes the complete typed read and analysis tool surface", () => {
-    const tools = createAuctionTools({
-      getAuctionState: createInitialAuctionState
-    });
+    const { context } = createContext();
+    const tools = createAuctionTools(context);
 
     expect(Object.keys(tools).sort()).toEqual([
       "analyzeBid",
+      "commitSimulatedBid",
       "getAuctionState",
       "getCurrentPlayer",
       "getStrategy",
@@ -50,11 +79,13 @@ describe("deterministic auction tool handlers", () => {
       expect(configuredTool.inputSchema).toBeDefined();
       expect(configuredTool.execute).toBeTypeOf("function");
     }
+    expect(tools.commitSimulatedBid.needsApproval).toBe(true);
   });
 
   it("grounds auction, player, composition, and strategy data in current state", () => {
-    const state = createInitialAuctionState();
-    const handlers = createAuctionToolHandlers({ getAuctionState: () => state });
+    const { context, getState } = createContext();
+    const state = getState().auction;
+    const handlers = createAuctionToolHandlers(context);
 
     expect(handlers.getAuctionState()).toMatchObject({
       teamName: "Bengaluru Comets",
@@ -77,7 +108,10 @@ describe("deterministic auction tool handlers", () => {
   it("uses fresh state for every call rather than a captured snapshot", () => {
     let agentState = createInitialAgentState();
     const handlers = createAuctionToolHandlers({
-      getAuctionState: () => agentState.auction
+      getAgentState: () => agentState,
+      setAgentState: (nextState) => {
+        agentState = nextState;
+      }
     });
 
     expect(handlers.getCurrentPlayer()).toMatchObject({
@@ -90,9 +124,8 @@ describe("deterministic auction tool handlers", () => {
   });
 
   it("filters and bounds remaining-player results", () => {
-    const handlers = createAuctionToolHandlers({
-      getAuctionState: createInitialAuctionState
-    });
+    const { context } = createContext();
+    const handlers = createAuctionToolHandlers(context);
     const result = handlers.listRemainingPlayers({
       role: "fast-bowler",
       limit: 2
@@ -107,9 +140,55 @@ describe("deterministic auction tool handlers", () => {
   });
 
   it("returns the authoritative deterministic recommendation unchanged", () => {
-    const state = createInitialAuctionState();
-    const handlers = createAuctionToolHandlers({ getAuctionState: () => state });
+    const { context, getState } = createContext();
+    const state = getState().auction;
+    const handlers = createAuctionToolHandlers(context);
 
     expect(handlers.analyzeBid()).toEqual(analyzeBid(state));
+  });
+
+  it("mutates state once after an approved tool execution", async () => {
+    const { context, getState } = createContext();
+    const before = getState();
+    const tools = createAuctionTools(context);
+    const execute = tools.commitSimulatedBid.execute;
+
+    if (!execute) throw new Error("Commit tool must be executable.");
+    const first = await execute(
+      { amountLakh: 260 },
+      { toolCallId: "approved-bid-1", messages: [] }
+    );
+    const afterFirst = getState();
+    const replay = await execute(
+      { amountLakh: 260 },
+      { toolCallId: "approved-bid-1", messages: [] }
+    );
+
+    expect(first).toMatchObject({
+      duplicate: false,
+      playerId: "aarya-sen",
+      amountLakh: 260
+    });
+    expect(afterFirst.auction.purseRemainingLakh).toBe(
+      before.auction.purseRemainingLakh - 260
+    );
+    expect(afterFirst.auction.squad).toHaveLength(before.auction.squad.length + 1);
+    expect(replay).toMatchObject({ duplicate: true, actionId: "approved-bid-1" });
+    expect(getState()).toEqual(afterFirst);
+  });
+
+  it("does not mutate state when a proposed bid is invalid", async () => {
+    const { context, getState } = createContext();
+    const before = structuredClone(getState());
+    const execute = createAuctionTools(context).commitSimulatedBid.execute;
+
+    if (!execute) throw new Error("Commit tool must be executable.");
+    expect(() =>
+      execute(
+        { amountLakh: 261 },
+        { toolCallId: "invalid-bid", messages: [] }
+      )
+    ).toThrow("auction increment");
+    expect(getState()).toEqual(before);
   });
 });

@@ -8,10 +8,13 @@ import {
   getNextBidAmount,
   getRemainingPlayersByRole,
   getTeamComposition,
-  type AuctionState,
   type Player,
   type PlayerRole
 } from "../domain";
+import {
+  commitAgentBid,
+  type BiddrAgentState
+} from "./state";
 
 const emptyInputSchema = z.object({}).strict();
 
@@ -22,12 +25,19 @@ export const listRemainingPlayersInputSchema = z
   })
   .strict();
 
+export const commitSimulatedBidInputSchema = z
+  .object({
+    amountLakh: z.number().int().positive()
+  })
+  .strict();
+
 type ListRemainingPlayersInput = z.output<
   typeof listRemainingPlayersInputSchema
 >;
 
 export type AuctionToolContext = {
-  getAuctionState: () => AuctionState;
+  getAgentState: () => BiddrAgentState;
+  setAgentState: (state: BiddrAgentState) => void;
 };
 
 function playerSummary(player: Player) {
@@ -52,7 +62,7 @@ function flattenRemainingPlayers(
 
 export function createAuctionToolHandlers(context: AuctionToolContext) {
   const readState = () => {
-    const state = context.getAuctionState();
+    const state = context.getAgentState().auction;
     assertAuctionState(state);
     return state;
   };
@@ -126,6 +136,21 @@ export function createAuctionToolHandlers(context: AuctionToolContext) {
         ...state.strategy,
         priorityRoles: [...state.strategy.priorityRoles]
       };
+    },
+
+    commitSimulatedBid: (input: {
+      amountLakh: number;
+      actionId: string;
+    }) => {
+      const committed = commitAgentBid(
+        context.getAgentState(),
+        input.amountLakh,
+        input.actionId
+      );
+      if (!committed.result.duplicate) {
+        context.setAgentState(committed.state);
+      }
+      return committed.result;
     }
   };
 }
@@ -169,7 +194,17 @@ export function createAuctionTools(context: AuctionToolContext) {
         "Read the remembered reserve percentage, risk tolerance, and priority roles that influence recommendations.",
       inputSchema: emptyInputSchema,
       execute: handlers.getStrategy
+    }),
+    commitSimulatedBid: tool({
+      description:
+        "Commit an exact simulated bid only after analyzing the active player. This spends purse and adds the player, so it always requires explicit user approval.",
+      inputSchema: commitSimulatedBidInputSchema,
+      needsApproval: true,
+      execute: (input, options) =>
+        handlers.commitSimulatedBid({
+          amountLakh: input.amountLakh,
+          actionId: options.toolCallId
+        })
     })
   };
 }
-

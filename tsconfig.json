@@ -2,7 +2,12 @@
   "extends": "agents/tsconfig",
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
-    "types": ["node", "vite/client", "@testing-library/jest-dom"],
+    "types": [
+      "node",
+      "vite/client",
+      "@testing-library/jest-dom",
+      "@cloudflare/vitest-plugin/types"
+    ],
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true
@@ -13,7 +18,7 @@
     "env.d.ts",
     "eslint.config.js",
     "vite.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "vitest.worker.config.ts"
   ]
 }
-

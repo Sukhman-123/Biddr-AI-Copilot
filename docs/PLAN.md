@@ -106,16 +106,16 @@ and documented rather than silently bypassed.
 - [x] Persistent chat messages and resumable streaming.
 - [x] Typed, Zod-validated read and analysis tools.
 - [x] Bounded tool loop and output limits.
-- [ ] Approval-gated `commitSimulatedBid` tool.
-- [ ] Deterministic fallback for inference errors and exhausted quota.
-- [ ] Agent-level tests for tools, state mutation, and approval behavior.
+- [x] Approval-gated `commitSimulatedBid` tool.
+- [x] Deterministic fallback for inference errors and exhausted quota.
+- [x] Agent-level tests for tools, state mutation, and approval behavior.
 
 ### Verification gate
 
-- [ ] Model-visible numbers originate from tools or deterministic results.
-- [ ] Only an approved mutation can spend purse or add a player.
-- [ ] Strategy and auction state survive Agent reconstruction.
-- [ ] Tool input failures return safe, useful errors.
+- [x] Model-visible numbers originate from tools or deterministic results.
+- [x] Only an approved mutation can spend purse or add a player.
+- [x] Strategy and auction state survive Agent reconstruction.
+- [x] Tool input failures return safe, useful errors.
 
 ## Phase 4 — Client integration
 

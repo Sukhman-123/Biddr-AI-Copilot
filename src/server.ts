@@ -11,6 +11,10 @@ import {
 import { callable, routeAgentRequest } from "agents";
 import { createWorkersAI } from "workers-ai-provider";
 import {
+  createDeterministicFallbackResponse,
+  createFallbackAwareResponse
+} from "./agent/fallback";
+import {
   CHAT_RECOVERY_CONFIG,
   CHAT_STREAM_STALL_TIMEOUT_MS,
   MAX_PERSISTED_CHAT_MESSAGES
@@ -83,31 +87,42 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
     _onFinish: unknown,
     options?: OnChatMessageOptions
   ) {
-    const workersai = createWorkersAI({ binding: this.env.AI });
-    const recentMessages = selectRecentChatMessages(
-      this.messages,
-      MAX_MODEL_CONTEXT_MESSAGES
-    );
-    const modelMessages = pruneMessages({
-      messages: await convertToModelMessages(recentMessages),
-      reasoning: "before-last-message",
-      toolCalls: "before-last-2-messages"
-    });
-    const result = streamText({
-      model: workersai(BIDDR_MODEL_ID, {
-        sessionAffinity: this.sessionAffinity
-      }),
-      system: BIDDR_SYSTEM_PROMPT,
-      messages: modelMessages,
-      tools: createAuctionTools({
-        getAuctionState: () => this.state.auction
-      }),
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      stopWhen: stepCountIs(MAX_TOOL_STEPS),
-      ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
-    });
+    try {
+      const workersai = createWorkersAI({ binding: this.env.AI });
+      const recentMessages = selectRecentChatMessages(
+        this.messages,
+        MAX_MODEL_CONTEXT_MESSAGES
+      );
+      const modelMessages = pruneMessages({
+        messages: await convertToModelMessages(recentMessages),
+        reasoning: "before-last-message",
+        toolCalls: "before-last-2-messages"
+      });
+      const result = streamText({
+        model: workersai(BIDDR_MODEL_ID, {
+          sessionAffinity: this.sessionAffinity
+        }),
+        system: BIDDR_SYSTEM_PROMPT,
+        messages: modelMessages,
+        tools: createAuctionTools({
+          getAgentState: () => this.state,
+          setAgentState: (state) => this.setState(state)
+        }),
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        stopWhen: stepCountIs(MAX_TOOL_STEPS),
+        ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
+      });
+      const modelStream = result.toUIMessageStream({
+        onError: () => "Workers AI unavailable"
+      });
 
-    return result.toUIMessageStreamResponse();
+      return createFallbackAwareResponse(
+        modelStream,
+        () => this.state.auction
+      );
+    } catch {
+      return createDeterministicFallbackResponse(this.state.auction);
+    }
   }
 }
 

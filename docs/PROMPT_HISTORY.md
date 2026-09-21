@@ -352,3 +352,46 @@ tools.
 
 Phase 3 pointer 6 is complete. The approval-gated bid mutation remains the next
 separate pointer. Work is paused pending user approval.
+
+## Session 12 — Phase 3, pointers 7–9: Approval, fallback, and Agent tests
+
+### User approval
+
+The user explicitly approved implementation of all three remaining Phase 3
+pointers in one run.
+
+### AI actions
+
+- Added `commitSimulatedBid` with strict whole-lakh input validation and an
+  unconditional AI SDK approval gate.
+- Used the trusted tool-call ID as a bounded idempotency key so replaying an
+  approved request cannot spend the purse or add a player twice.
+- Kept mutation inside deterministic domain rules and Agent `setState()`; read
+  and analysis tools remain unable to write state.
+- Added deterministic fallback text generated from the same auction engine for
+  synchronous inference failures, stream failures, and exhausted model quota.
+- Replaced provider-error stream chunks with ordinary assistant text without
+  exposing internal provider errors.
+- Added Cloudflare's official Vitest plugin and local Worker-runtime tests for
+  approval behavior, invalid inputs, state mutation, idempotency, and durable
+  reconstruction after eviction.
+- Disabled remote AI bindings in tests so the suite requires no Cloudflare
+  token and incurs no Workers AI usage.
+- Pinned `@cloudflare/ai-chat` to `0.9.3` after the Worker test exposed an
+  incompatible tracing call in `0.9.4` with the project's Agents SDK version.
+
+### Verification result
+
+- The complete `npm run check` gate passed.
+- ESLint, TypeScript, and both production bundles passed.
+- Unit tests passed 47 of 47; Worker integration tests passed 3 of 3, for
+  50 automated tests in total.
+- Strategy and auction progress restored after an explicit Durable Object
+  eviction.
+- Approved bids committed once; rejected, invalid, read-only, and replayed
+  operations left state unchanged.
+
+### Pointer result
+
+All Phase 3 deliverables and verification criteria are complete. Work remains
+paused before Phase 4 until the user approves moving forward.

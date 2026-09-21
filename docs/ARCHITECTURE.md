@@ -85,18 +85,18 @@ The MVP uses Agent state for the compact, synchronized application snapshot and
 `AIChatAgent`'s built-in SQLite tables for messages.
 
 ```ts
-type BiddrState = {
+type BiddrAgentState = {
   schemaVersion: 1;
   auction: AuctionState;
-  strategy: StrategyPreferences;
   processedActionIds: string[];
 };
 ```
 
 `AuctionState` contains the current lot index, team purse, roster, player
-statuses, current bid, bid history, and event log. `StrategyPreferences` contains
-reserve percentage, risk tolerance, and prioritized roles. The processed action
-IDs provide a bounded idempotency record for state-changing approvals.
+statuses, current bid, bid history, event log, and `StrategyPreferences`.
+Preferences contain reserve percentage, risk tolerance, and prioritized roles.
+The processed action IDs provide a bounded idempotency record for
+state-changing approvals.
 
 State is JSON-serializable and replaced through `setState()` so connected
 clients receive synchronized updates. If event volume later makes the snapshot
@@ -113,9 +113,11 @@ public behavior.
 | `listRemainingPlayers` | Yes | No | No |
 | `analyzeBid` | Yes | No | No |
 | `getStrategy` | Yes | No | No |
-| `rememberStrategy` | Yes | Yes | No; constrained preferences only |
-| `proposeBid` | Yes | No | No |
 | `commitSimulatedBid` | Yes | Yes | Always |
+
+`rememberStrategy`, pass, advance, and reset are validated callable Agent
+operations used by the client rather than model tools. Only
+`commitSimulatedBid` lets a model-requested operation spend purse.
 
 All tool inputs use strict Zod schemas. State-changing calls revalidate business
 rules at execution time; prior analysis is never treated as authorization.
@@ -181,4 +183,3 @@ rules at execution time; prior analysis is never treated as authorization.
 - **LLM-generated valuation:** difficult to test and prone to numerical drift.
 - **Real player dataset:** creates licensing, freshness, and attribution work
   unrelated to the assignment's engineering signal.
-
