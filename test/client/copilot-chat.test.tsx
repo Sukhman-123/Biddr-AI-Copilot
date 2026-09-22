@@ -6,6 +6,7 @@ import { MAX_USER_MESSAGE_CHARACTERS } from "../../src/agent/limits";
 
 const chatHook = vi.hoisted(() => ({
   addToolApprovalResponse: vi.fn(),
+  clearHistory: vi.fn(),
   sendMessage: vi.fn(),
   useAgentChat: vi.fn()
 }));
@@ -48,6 +49,7 @@ function mockChat(overrides: Record<string, unknown> = {}) {
   chatHook.useAgentChat.mockReturnValue({
     messages: [],
     addToolApprovalResponse: chatHook.addToolApprovalResponse,
+    clearHistory: chatHook.clearHistory,
     sendMessage: chatHook.sendMessage,
     status: "idle",
     isStreaming: false,
@@ -59,6 +61,7 @@ function mockChat(overrides: Record<string, unknown> = {}) {
 describe("Copilot chat", () => {
   beforeEach(() => {
     chatHook.addToolApprovalResponse.mockReset();
+    chatHook.clearHistory.mockReset();
     chatHook.sendMessage.mockReset();
     chatHook.useAgentChat.mockReset();
     mockChat();
@@ -125,6 +128,48 @@ describe("Copilot chat", () => {
         { type: "text", text: "Which role should we prioritize next?" }
       ]
     });
+  });
+
+  it("clears only the current conversation after confirmation", async () => {
+    const user = userEvent.setup();
+    mockChat({
+      messages: [
+        {
+          id: "user-clearable",
+          role: "user",
+          parts: [{ type: "text", text: "Old message" }]
+        }
+      ]
+    });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+
+    await user.click(screen.getByRole("button", { name: "Clear chat" }));
+    expect(
+      screen.getByRole("group", { name: "Confirm clear chat" })
+    ).toBeVisible();
+    expect(chatHook.clearHistory).not.toHaveBeenCalled();
+
+    await user.click(
+      screen.getByRole("button", { name: "Confirm clear chat" })
+    );
+    expect(chatHook.clearHistory).toHaveBeenCalledOnce();
+  });
+
+  it("does not allow chat clearing during a stream", () => {
+    mockChat({
+      messages: [
+        {
+          id: "streaming-message",
+          role: "assistant",
+          parts: [{ type: "text", text: "Still responding" }]
+        }
+      ],
+      status: "streaming",
+      isStreaming: true
+    });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+
+    expect(screen.getByRole("button", { name: "Clear chat" })).toBeDisabled();
   });
 
   it("renders persisted and streaming text message parts", () => {

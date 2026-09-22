@@ -35,9 +35,11 @@ export function CopilotChat({
   connectionStatus: AgentConnectionStatus;
 }) {
   const [input, setInput] = useState("");
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const {
     addToolApprovalResponse,
+    clearHistory,
     messages,
     sendMessage,
     status,
@@ -53,6 +55,7 @@ export function CopilotChat({
   const inputTooLong = input.length > MAX_USER_MESSAGE_CHARACTERS;
   const canSend =
     connected && !busy && !inputTooLong && input.trim().length > 0;
+  const canClearHistory = connected && !busy && messages.length > 0;
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -90,6 +93,12 @@ export function CopilotChat({
   };
 
   const visibleMessages = messages.filter(hasVisiblePart);
+
+  const clearChat = () => {
+    if (!canClearHistory) return;
+    clearHistory();
+    setConfirmingClear(false);
+  };
 
   return (
     <>
@@ -182,6 +191,37 @@ export function CopilotChat({
             <p>The AI explains decisions; tested code sets every bid ceiling.</p>
           </div>
         </section>
+      </div>
+
+      <div className="chat-history-actions">
+        {confirmingClear ? (
+          <div role="group" aria-label="Confirm clear chat">
+            <span>Clear this conversation only?</span>
+            <button
+              className="button button-danger"
+              type="button"
+              onClick={clearChat}
+            >
+              Confirm clear chat
+            </button>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => setConfirmingClear(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            className="button button-secondary"
+            type="button"
+            disabled={!canClearHistory}
+            onClick={() => setConfirmingClear(true)}
+          >
+            Clear chat
+          </button>
+        )}
       </div>
 
       <form className="composer" aria-label="Send a message to Biddr" onSubmit={handleSubmit}>

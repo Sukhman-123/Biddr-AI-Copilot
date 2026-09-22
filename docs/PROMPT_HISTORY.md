@@ -717,3 +717,20 @@ then explicitly requested a fix.
 
 The installed adapter patch is reproducible from the lockfile and repository.
 The public Worker must be redeployed after the full verification gate passes.
+
+## Session 24 — Clear persisted chat history
+
+### User request
+
+The user requested a way to clear the conversation because one persisted chat
+can become too long.
+
+### AI actions
+
+- Added an accessible, two-step clear-chat control backed by
+  `useAgentChat().clearHistory()`.
+- Limited clearing to an idle, connected Agent session to avoid racing an active
+  stream or approval flow.
+- Kept auction state, strategy, and the browser's session identity untouched;
+  only the current session's persisted conversation is removed.
+- Added component coverage for confirmation and stream-time locking.

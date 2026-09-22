@@ -1094,6 +1094,28 @@ h1 {
   background: #0d1310;
 }
 
+.chat-history-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -18px 0 0;
+}
+
+.chat-history-actions [role="group"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chat-history-actions .button {
+  min-height: 36px;
+  padding-inline: 12px;
+  font-size: 12px;
+}
+
 .composer textarea {
   min-height: 46px;
   flex: 1;
@@ -1205,6 +1227,14 @@ h1 {
 
   .chat-message {
     max-width: 100%;
+  }
+
+  .chat-history-actions {
+    margin-top: -8px;
+  }
+
+  .chat-history-actions [role="group"] {
+    justify-content: flex-start;
   }
 
   .strategy-options,
