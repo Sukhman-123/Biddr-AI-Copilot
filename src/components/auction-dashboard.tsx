@@ -12,6 +12,7 @@ import {
   getTeamComposition,
   type PlayerRole
 } from "../domain";
+import { formatLakhAsCrore } from "../client/format";
 
 const ROLE_LABELS: Record<PlayerRole, { singular: string; plural: string }> = {
   batter: { singular: "Batter", plural: "Batters" },
@@ -20,10 +21,6 @@ const ROLE_LABELS: Record<PlayerRole, { singular: string; plural: string }> = {
   "fast-bowler": { singular: "Fast bowler", plural: "Fast bowlers" },
   "spin-bowler": { singular: "Spin bowler", plural: "Spin bowlers" }
 };
-
-function formatLakhAsCrore(amountLakh: number): string {
-  return `₹${(amountLakh / 100).toFixed(2)} Cr`;
-}
 
 function getInitials(name: string): string {
   return name

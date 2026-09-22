@@ -474,3 +474,62 @@ The complete `npm run check` gate passed: ESLint, TypeScript, 59 unit tests,
 3 Worker-runtime tests, and both production bundles. Phase 4 pointer 3 is
 complete. Streaming chat, suggested prompts, and the accessible composer remain
 paused pending user approval.
+
+## Session 16 — Phase 4, pointer 4: Streaming chat and composer
+
+### User approval
+
+The user approved the next Phase 4 pointer after committing the live auction
+dashboard.
+
+### AI actions
+
+- Added the AI SDK React peer required by Cloudflare's chat hook.
+- Connected `useAgentChat` to the existing session-specific Agent socket with
+  automatic stream resumption enabled.
+- Rendered persisted user and assistant text parts and live streaming updates.
+- Added suggested starter questions for the empty conversation.
+- Added an accessible controlled composer with Enter-to-send,
+  Shift+Enter-for-newline behavior, trimmed input, and connection/busy guards.
+- Added submitted, streaming, recovery, and safe error feedback without
+  exposing provider details.
+- Added component coverage for typed submissions, starter prompts, persisted
+  messages, streaming state, disconnection, and errors.
+
+### Pointer result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 64 unit tests,
+3 Worker-runtime tests, and both production bundles. Phase 4 pointer 4 is
+complete. Tool activity and structured recommendation cards remain paused
+pending user approval.
+
+## Session 17 — Phase 4, pointer 5: Tool activity and recommendation cards
+
+### User approval
+
+The user approved the next Phase 4 pointer while retaining the one-pointer-at-a-
+time delivery gate.
+
+### AI actions
+
+- Rendered tool calls in transcript order alongside assistant text instead of
+  hiding tool-only messages.
+- Added clear working, complete, failed, declined, approved, and approval-
+  required activity states for every auction tool.
+- Mapped internal tool names to concise, reviewer-friendly activity labels.
+- Added a structured bid-recommendation card with the deterministic decision,
+  next bid, maximum bid, headroom, reserve floor, scarcity context, and engine
+  reasons.
+- Validated persisted recommendation output with a strict Zod schema before
+  rendering any numerical details.
+- Replaced internal tool errors with safe user-facing feedback.
+- Displayed pending mutation approval as activity only; approval and rejection
+  controls remain intentionally reserved for the next pointer.
+- Added component coverage for active tools, completed recommendations, safe
+  errors, pending approval, and malformed persisted output.
+
+### Pointer result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 67 unit tests,
+3 Worker-runtime tests, and both production bundles. Phase 4 pointer 5 is
+complete. Approval and rejection controls remain paused pending user approval.

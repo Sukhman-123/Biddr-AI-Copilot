@@ -1,6 +1,4 @@
 import {
-  ChatCircleDotsIcon,
-  ShieldCheckIcon,
   SparkleIcon
 } from "@phosphor-icons/react";
 import {
@@ -8,6 +6,7 @@ import {
   type AgentConnectionStatus
 } from "./client/use-biddr-agent";
 import { AuctionDashboard } from "./components/auction-dashboard";
+import { CopilotChat } from "./components/copilot-chat";
 
 const connectionLabels: Record<AgentConnectionStatus, string> = {
   connecting: "Connecting to Agent",
@@ -83,40 +82,7 @@ function App({ sessionId }: AppProps) {
             </div>
           </div>
 
-          <div className="chat-preview">
-            <div className="empty-chat">
-              <ChatCircleDotsIcon size={30} aria-hidden="true" />
-              <h3>Your copilot joins in Phase 3</h3>
-              <p>
-                Streaming chat, live auction tools, and remembered strategy will
-                appear here after the deterministic engine is complete.
-              </p>
-            </div>
-
-            <section className="guardrail-note" aria-label="Recommendation policy">
-              <ShieldCheckIcon size={19} aria-hidden="true" />
-              <div>
-                <strong>Numbers stay deterministic</strong>
-                <p>The AI explains decisions; tested code sets every bid ceiling.</p>
-              </div>
-            </section>
-          </div>
-
-          <form className="composer" aria-label="Copilot message preview">
-            <label htmlFor="copilot-message">Ask the copilot</label>
-            <div className="composer-row">
-              <textarea
-                id="copilot-message"
-                rows={2}
-                placeholder="Should I bid on Aarya Sen?"
-                disabled
-              />
-              <button className="send-button" type="submit" disabled>
-                Send
-              </button>
-            </div>
-            <small>Chat integration is intentionally disabled in Phase 1.</small>
-          </form>
+          <CopilotChat agent={agent} connectionStatus={connectionStatus} />
         </aside>
       </main>
     </div>

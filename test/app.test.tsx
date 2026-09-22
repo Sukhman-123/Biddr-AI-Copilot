@@ -11,9 +11,16 @@ const agentHook = vi.hoisted(() => ({
   reconnect: vi.fn(),
   useBiddrAgent: vi.fn()
 }));
+const chatHook = vi.hoisted(() => ({
+  sendMessage: vi.fn(),
+  useAgentChat: vi.fn()
+}));
 
 vi.mock("../src/client/use-biddr-agent", () => ({
   useBiddrAgent: agentHook.useBiddrAgent
+}));
+vi.mock("@cloudflare/ai-chat/react", () => ({
+  useAgentChat: chatHook.useAgentChat
 }));
 
 const SESSION_ID = "1995e44b-4a15-4ed1-8b79-4f0edb9026b4";
@@ -26,6 +33,15 @@ describe("Biddr application shell", () => {
       agent: { state: createInitialAgentState() },
       connectionStatus: "connected",
       reconnect: agentHook.reconnect
+    });
+    chatHook.sendMessage.mockReset();
+    chatHook.useAgentChat.mockReset();
+    chatHook.useAgentChat.mockReturnValue({
+      messages: [],
+      sendMessage: chatHook.sendMessage,
+      status: "idle",
+      isStreaming: false,
+      isRecovering: false
     });
   });
 
@@ -42,11 +58,10 @@ describe("Biddr application shell", () => {
     expect(agentHook.useBiddrAgent).toHaveBeenCalledWith(SESSION_ID);
   });
 
-  it("keeps unfinished auction and chat actions disabled", () => {
+  it("keeps unfinished auction actions disabled", () => {
     render(<App sessionId={SESSION_ID} />);
 
     expect(screen.getByRole("button", { name: "Place bid" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
   });
 
   it("renders the current player and metrics from synchronized Agent state", () => {

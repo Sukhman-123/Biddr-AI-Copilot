@@ -124,8 +124,8 @@ and documented rather than silently bypassed.
 - [x] Stable per-browser demo-session identifier.
 - [x] Live Agent connection and reconnect behavior.
 - [x] Auction dashboard and current-player presentation.
-- [ ] Streaming chat, suggested prompts, and accessible composer.
-- [ ] Tool activity and structured recommendation cards.
+- [x] Streaming chat, suggested prompts, and accessible composer.
+- [x] Tool activity and structured recommendation cards.
 - [ ] Approval and rejection controls.
 - [ ] Strategy-memory controls and visible active preferences.
 - [ ] Advance and reset interactions.
