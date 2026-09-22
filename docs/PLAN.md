@@ -121,7 +121,7 @@ and documented rather than silently bypassed.
 
 ### Deliverables
 
-- [ ] Stable per-browser demo-session identifier.
+- [x] Stable per-browser demo-session identifier.
 - [ ] Live Agent connection and reconnect behavior.
 - [ ] Auction dashboard and current-player presentation.
 - [ ] Streaming chat, suggested prompts, and accessible composer.

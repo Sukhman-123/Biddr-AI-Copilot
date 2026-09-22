@@ -395,3 +395,28 @@ pointers in one run.
 
 All Phase 3 deliverables and verification criteria are complete. Work remains
 paused before Phase 4 until the user approves moving forward.
+
+## Session 13 — Phase 4, pointer 1: Stable browser session identity
+
+### User approval
+
+The user approved the first Phase 4 pointer and retained the one-pointer-at-a-
+time delivery gate.
+
+### AI actions
+
+- Added a versioned `localStorage` key for the browser's demo-session UUID.
+- Reused valid stored identifiers so refreshes and reopened tabs address the
+  same future Agent instance.
+- Replaced malformed stored values instead of allowing them into Agent routes.
+- Generated independent IDs for independent browser storage contexts.
+- Added an in-memory page-lifetime fallback for browsers that block storage.
+- Initialized the identifier at the client entry point before React renders.
+- Added tests for creation, reuse, browser isolation, and malformed values.
+
+### Pointer result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 51 unit tests,
+3 Worker-runtime tests, and both production bundles. Phase 4 pointer 1 is
+complete. Live Agent connection and reconnect behavior remain paused pending
+user approval.
