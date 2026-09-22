@@ -84,6 +84,9 @@ function App({ sessionId }: AppProps) {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main">
+        Skip to auction workspace
+      </a>
       <header className="topbar">
         <a className="brand" href="#main" aria-label="Biddr AI Copilot home">
           <span className="brand-mark" aria-hidden="true">
@@ -108,7 +111,7 @@ function App({ sessionId }: AppProps) {
         </div>
       </header>
 
-      <main id="main" className="workspace">
+      <main id="main" className="workspace" tabIndex={-1}>
         <AuctionDashboard
           agentState={agent.state}
           controlsDisabled={controlsDisabled}

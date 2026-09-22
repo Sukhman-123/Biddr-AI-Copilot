@@ -98,6 +98,7 @@ export function CopilotChat({
         ref={transcriptRef}
         aria-label="Copilot conversation"
         aria-live="polite"
+        aria-relevant="additions text"
       >
         {visibleMessages.length === 0 ? (
           <div className="empty-chat">

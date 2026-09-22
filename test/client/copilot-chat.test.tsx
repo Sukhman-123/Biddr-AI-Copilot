@@ -74,6 +74,10 @@ describe("Copilot chat", () => {
       autoContinueAfterToolResult: true,
       resume: true
     });
+    expect(screen.getByLabelText("Copilot conversation")).toHaveAttribute(
+      "aria-relevant",
+      "additions text"
+    );
     await user.type(composer, "  How is our purse?  ");
     await user.click(screen.getByRole("button", { name: "Send" }));
 

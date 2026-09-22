@@ -177,8 +177,10 @@ rules at execution time; prior analysis is never treated as authorization.
 
 - Pure engine unit tests cover values, transitions, invariants, and boundaries.
 - Worker-pool tests exercise Agent persistence, routing, and tools.
-- React tests cover dashboard states, chat composer, approval, errors, and
-  keyboard behavior.
+- React tests cover dashboard states, chat composer, approval, errors,
+  keyboard behavior, live-region semantics, and the skip link.
+- Worker-runtime tests cover persistence, validation failures, and idempotent
+  approval replay after Durable Object reconstruction.
 - A final deployed smoke test covers isolated sessions, refresh persistence,
   approval/rejection, reset, and model failure fallback.
 

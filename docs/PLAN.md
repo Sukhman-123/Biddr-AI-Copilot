@@ -148,15 +148,15 @@ and documented rather than silently bypassed.
 - [x] No arbitrary URL, generic fetch, code execution, or external-write tool.
 - [x] Defensive state invariants and idempotent approval handling.
 - [x] Friendly network, model, quota, and reconnect errors.
-- [ ] Expanded unit, Agent integration, and component tests.
-- [ ] Accessibility and responsive-layout review.
+- [x] Expanded unit, Agent integration, and component tests.
+- [x] Accessibility and responsive-layout review.
 
 ### Verification gate
 
-- [ ] Malformed inputs cannot mutate state.
-- [ ] Replaying an approved request cannot double-spend the purse.
-- [ ] The app remains navigable and informative without model availability.
-- [ ] All automated checks pass together.
+- [x] Malformed inputs cannot mutate state.
+- [x] Replaying an approved request cannot double-spend the purse.
+- [x] The app remains navigable and informative without model availability.
+- [x] All automated checks pass together.
 
 ## Phase 6 — Deployment and submission
 

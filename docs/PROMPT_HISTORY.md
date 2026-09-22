@@ -663,3 +663,31 @@ The user approved the next three Phase 5 pointers together.
 The complete `npm run check` gate passed: ESLint, TypeScript, 86 unit tests,
 3 Worker-runtime tests, and both production bundles. Phase 5 pointers 4–6 are
 complete; pointers 7–8 remain intentionally paused pending user approval.
+
+## Session 22 — Phase 5, pointers 7–8: Coverage and accessibility review
+
+### User approval
+
+The user approved completion of all remaining Phase 5 work.
+
+### AI actions
+
+- Added a Worker-runtime integration test showing an approved bid replay remains
+  read-only and returns its original result after Durable Object reconstruction.
+- Extended component coverage for the app's keyboard skip link and the chat
+  transcript's polite, additions-only live-region behavior.
+- Added a focusable skip link to the auction workspace and made its target
+  programmatically focusable.
+- Reviewed responsive behavior at the defined 980px, 620px, and 420px layout
+  breakpoints. Fixed wrapped connection recovery copy and long transcript text
+  so neither can force horizontal overflow on narrow screens.
+- Confirmed visible focus indicators, native semantic controls and labels,
+  44px primary controls, reduced-motion handling, keyboard activation, and
+  loading/error/status announcements across the primary flows.
+
+### Phase result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 86 unit tests,
+4 Worker-runtime tests, and both production bundles. All Phase 5 deliverables
+and verification criteria are complete. Work is paused before Phase 6 pending
+user approval.

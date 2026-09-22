@@ -82,6 +82,56 @@ describe("BiddrCopilotAgent in the Workers runtime", () => {
     });
   });
 
+  it("returns the original result when an approved bid is replayed after reconstruction", async () => {
+    const stub = getAgentStub("reconstructed-idempotency-test");
+
+    await runInDurableObject<BiddrCopilotAgent, void>(stub, async (agent) => {
+      const tools = createAuctionTools({
+        getAgentState: () => agent.getSnapshot(),
+        setAgentState: (state) => agent.setState(state)
+      });
+      const execute = tools.commitSimulatedBid.execute;
+      if (!execute) throw new Error("Commit tool must be executable.");
+
+      const committed = await execute(
+        { amountLakh: 260 },
+        { toolCallId: "reconstructed-approved-bid", messages: [] }
+      );
+      expect(committed).toMatchObject({
+        duplicate: false,
+        playerName: "Aarya Sen",
+        purseRemainingLakh: 3600
+      });
+    });
+
+    await evictDurableObject(stub);
+
+    await runInDurableObject<BiddrCopilotAgent, void>(stub, async (agent) => {
+      const beforeReplay = structuredClone(agent.getSnapshot());
+      const tools = createAuctionTools({
+        getAgentState: () => agent.getSnapshot(),
+        setAgentState: (state) => agent.setState(state)
+      });
+      const execute = tools.commitSimulatedBid.execute;
+      if (!execute) throw new Error("Commit tool must be executable.");
+
+      const replay = await execute(
+        { amountLakh: 260 },
+        { toolCallId: "reconstructed-approved-bid", messages: [] }
+      );
+
+      expect(replay).toMatchObject({
+        duplicate: true,
+        playerId: "aarya-sen",
+        playerName: "Aarya Sen",
+        amountLakh: 260,
+        purseRemainingLakh: 3600,
+        squadSize: 8
+      });
+      expect(agent.getSnapshot()).toEqual(beforeReplay);
+    });
+  });
+
   it("keeps read and validation failures from mutating Agent state", async () => {
     const stub = getAgentStub("safe-tools-test");
 

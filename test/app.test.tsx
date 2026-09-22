@@ -79,6 +79,10 @@ describe("Biddr application shell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Agent connected")).toBeInTheDocument();
     expect(agentHook.useBiddrAgent).toHaveBeenCalledWith(SESSION_ID);
+    expect(
+      screen.getByRole("link", { name: "Skip to auction workspace" })
+    ).toHaveAttribute("href", "#main");
+    expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
   });
 
   it("enables the connected auction and strategy controls", () => {

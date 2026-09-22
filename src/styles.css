@@ -60,6 +60,24 @@ textarea:disabled {
   min-height: 100vh;
 }
 
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  padding: 10px 13px;
+  transform: translateY(-160%);
+  border-radius: 9px;
+  color: #141b12;
+  background: var(--accent);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
 .topbar {
   min-height: 76px;
   display: flex;
@@ -657,6 +675,7 @@ h1 {
 
 .connection-controls {
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .connection-dot {
@@ -691,7 +710,7 @@ h1 {
 .connection-help {
   width: 100%;
   margin: 0;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -791,6 +810,7 @@ h1 {
   border-radius: 15px;
   background: var(--surface-raised);
   line-height: 1.6;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
