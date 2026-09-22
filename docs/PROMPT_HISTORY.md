@@ -566,3 +566,40 @@ The complete `npm run check` gate passed: ESLint, TypeScript, 72 unit tests,
 3 Worker-runtime tests, and both production bundles. Phase 4 pointer 6 is
 complete. Strategy-memory controls and visible active preferences remain paused
 pending user approval.
+
+## Session 19 — Phase 4, pointers 7–9: Strategy, auction controls, and responsive UI
+
+### User approval
+
+The user explicitly approved completing all three remaining Phase 4 pointers in
+one run.
+
+### AI actions
+
+- Added visible active-strategy badges for reserve percentage, risk tolerance,
+  and every priority role stored in Agent state.
+- Added labelled reserve, risk, and priority-role controls that save through the
+  existing strictly validated `rememberStrategy` callable.
+- Connected pass and advance actions to their existing callable Agent methods
+  without optimistic client-side auction mutation.
+- Replaced the reset placeholder with a two-step confirmation that invokes the
+  Agent's reset callable.
+- Added shared pending-state locks, safe success/error feedback, and connection
+  guards for all direct state operations.
+- Kept model-proposed bidding inside the separate approval-gated chat flow.
+- Expanded desktop, tablet, narrow-phone, reduced-motion, hover, touch-target,
+  tool-card, strategy-form, composer, and connection-state styling.
+- Preserved connection and retry feedback on mobile instead of hiding it.
+- Added component coverage for active preferences, strategy saving, pass,
+  advance, confirmed reset, disconnected controls, safe RPC errors, and keyboard
+  activation.
+- Rechecked browser-session isolation, refresh-stable Agent addressing,
+  resumable chat configuration, durable state reconstruction, all chat states,
+  and accessible native controls against the Phase 4 verification gate.
+
+### Phase result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 77 unit tests,
+3 Worker-runtime tests, and both production bundles. All Phase 4 deliverables
+and verification criteria are complete. Work is paused before Phase 5 pending
+user approval.

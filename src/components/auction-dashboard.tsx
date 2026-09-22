@@ -4,15 +4,17 @@ import {
   WalletIcon
 } from "@phosphor-icons/react";
 import type { BiddrAgentState } from "../agent/state";
+import { formatLakhAsCrore } from "../client/format";
 import {
   PLAYER_ROLES,
   ROLE_TARGETS,
   getCurrentPlayer,
   getNextBidAmount,
   getTeamComposition,
-  type PlayerRole
+  type PlayerRole,
+  type StrategyPreferences
 } from "../domain";
-import { formatLakhAsCrore } from "../client/format";
+import { StrategyPanel } from "./strategy-panel";
 
 const ROLE_LABELS: Record<PlayerRole, { singular: string; plural: string }> = {
   batter: { singular: "Batter", plural: "Batters" },
@@ -61,9 +63,23 @@ function LoadingAuctionDashboard() {
 }
 
 export function AuctionDashboard({
-  agentState
+  agentState,
+  controlsDisabled = false,
+  pendingAction = null,
+  actionFeedback,
+  onAdvance,
+  onPass,
+  onSaveStrategy
 }: {
   agentState: BiddrAgentState | undefined;
+  controlsDisabled?: boolean;
+  pendingAction?: "strategy" | "pass" | "advance" | "reset" | null;
+  actionFeedback?: { tone: "success" | "error"; message: string } | null;
+  onAdvance?: () => void | Promise<void>;
+  onPass?: () => void | Promise<void>;
+  onSaveStrategy?: (
+    strategy: StrategyPreferences
+  ) => void | Promise<void>;
 }) {
   if (!agentState) return <LoadingAuctionDashboard />;
 
@@ -130,28 +146,50 @@ export function AuctionDashboard({
               </dd>
             </div>
           </dl>
-          <div
-            className="placeholder-actions"
-            aria-label="Auction controls preview"
-          >
-            <button className="button button-primary" type="button" disabled>
-              Place bid
+          <div className="auction-actions" aria-label="Auction controls">
+            <button
+              className="button button-primary"
+              type="button"
+              disabled={controlsDisabled || pendingAction !== null || !onPass}
+              onClick={() => void onPass?.()}
+            >
+              {pendingAction === "pass" ? "Passing…" : "Pass player"}
             </button>
-            <button className="button button-secondary" type="button" disabled>
-              Pass
+            <button
+              className="button button-secondary"
+              type="button"
+              disabled={
+                controlsDisabled || pendingAction !== null || !onAdvance
+              }
+              onClick={() => void onAdvance?.()}
+            >
+              {pendingAction === "advance" ? "Advancing…" : "Advance lot"}
             </button>
           </div>
+          <p className="auction-action-hint">
+            To place a bid, ask Biddr and approve its exact proposal in chat.
+          </p>
         </article>
       ) : (
         <article className="player-card auction-complete-card" role="status">
           <span className="role-label">All lots resolved</span>
           <h2>Auction complete</h2>
           <p>
-            The final squad and remaining purse are shown below. Reset controls
-            will be enabled in a later interaction step.
+            The final squad and remaining purse are shown below. Reset the demo
+            from the header to run the auction again.
           </p>
         </article>
       )}
+
+      {actionFeedback ? (
+        <p
+          className="action-feedback"
+          data-tone={actionFeedback.tone}
+          role={actionFeedback.tone === "error" ? "alert" : "status"}
+        >
+          {actionFeedback.message}
+        </p>
+      ) : null}
 
       <section className="metrics-grid" aria-label="Team auction metrics">
         <article className="metric-card">
@@ -178,6 +216,14 @@ export function AuctionDashboard({
           <small>{auction.strategy.riskTolerance} risk</small>
         </article>
       </section>
+
+      <StrategyPanel
+        key={`${auction.strategy.reservePercent}-${auction.strategy.riskTolerance}-${auction.strategy.priorityRoles.join(",")}`}
+        strategy={auction.strategy}
+        disabled={controlsDisabled || pendingAction !== null}
+        saving={pendingAction === "strategy"}
+        onSave={onSaveStrategy}
+      />
 
       <article className="panel squad-panel">
         <div className="panel-heading">

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/app";
@@ -8,10 +8,15 @@ import {
 } from "../src/agent/state";
 
 const agentHook = vi.hoisted(() => ({
+  advanceLot: vi.fn(),
+  passPlayer: vi.fn(),
   reconnect: vi.fn(),
+  rememberStrategy: vi.fn(),
+  resetDemo: vi.fn(),
   useBiddrAgent: vi.fn()
 }));
 const chatHook = vi.hoisted(() => ({
+  addToolApprovalResponse: vi.fn(),
   sendMessage: vi.fn(),
   useAgentChat: vi.fn()
 }));
@@ -27,16 +32,34 @@ const SESSION_ID = "1995e44b-4a15-4ed1-8b79-4f0edb9026b4";
 
 describe("Biddr application shell", () => {
   beforeEach(() => {
+    agentHook.advanceLot.mockReset();
+    agentHook.advanceLot.mockResolvedValue(undefined);
+    agentHook.passPlayer.mockReset();
+    agentHook.passPlayer.mockResolvedValue(undefined);
     agentHook.reconnect.mockReset();
+    agentHook.rememberStrategy.mockReset();
+    agentHook.rememberStrategy.mockResolvedValue(undefined);
+    agentHook.resetDemo.mockReset();
+    agentHook.resetDemo.mockResolvedValue(undefined);
     agentHook.useBiddrAgent.mockReset();
     agentHook.useBiddrAgent.mockReturnValue({
-      agent: { state: createInitialAgentState() },
+      agent: {
+        state: createInitialAgentState(),
+        stub: {
+          advanceLot: agentHook.advanceLot,
+          passPlayer: agentHook.passPlayer,
+          rememberStrategy: agentHook.rememberStrategy,
+          resetDemo: agentHook.resetDemo
+        }
+      },
       connectionStatus: "connected",
       reconnect: agentHook.reconnect
     });
+    chatHook.addToolApprovalResponse.mockReset();
     chatHook.sendMessage.mockReset();
     chatHook.useAgentChat.mockReset();
     chatHook.useAgentChat.mockReturnValue({
+      addToolApprovalResponse: chatHook.addToolApprovalResponse,
       messages: [],
       sendMessage: chatHook.sendMessage,
       status: "idle",
@@ -58,10 +81,13 @@ describe("Biddr application shell", () => {
     expect(agentHook.useBiddrAgent).toHaveBeenCalledWith(SESSION_ID);
   });
 
-  it("keeps unfinished auction actions disabled", () => {
+  it("enables the connected auction and strategy controls", () => {
     render(<App sessionId={SESSION_ID} />);
 
-    expect(screen.getByRole("button", { name: "Place bid" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pass player" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Advance lot" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reset demo" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save strategy" })).toBeDisabled();
   });
 
   it("renders the current player and metrics from synchronized Agent state", () => {
@@ -82,7 +108,15 @@ describe("Biddr application shell", () => {
 
   it("changes the player presentation when synchronized state advances", () => {
     agentHook.useBiddrAgent.mockReturnValue({
-      agent: { state: passAgentCurrentPlayer(createInitialAgentState()) },
+      agent: {
+        state: passAgentCurrentPlayer(createInitialAgentState()),
+        stub: {
+          advanceLot: agentHook.advanceLot,
+          passPlayer: agentHook.passPlayer,
+          rememberStrategy: agentHook.rememberStrategy,
+          resetDemo: agentHook.resetDemo
+        }
+      },
       connectionStatus: "connected",
       reconnect: agentHook.reconnect
     });
@@ -95,7 +129,15 @@ describe("Biddr application shell", () => {
 
   it("shows a loading presentation until Agent state arrives", () => {
     agentHook.useBiddrAgent.mockReturnValue({
-      agent: { state: undefined },
+      agent: {
+        state: undefined,
+        stub: {
+          advanceLot: agentHook.advanceLot,
+          passPlayer: agentHook.passPlayer,
+          rememberStrategy: agentHook.rememberStrategy,
+          resetDemo: agentHook.resetDemo
+        }
+      },
       connectionStatus: "connecting",
       reconnect: agentHook.reconnect
     });
@@ -116,7 +158,15 @@ describe("Biddr application shell", () => {
       currentBid: null
     };
     agentHook.useBiddrAgent.mockReturnValue({
-      agent: { state: completeState },
+      agent: {
+        state: completeState,
+        stub: {
+          advanceLot: agentHook.advanceLot,
+          passPlayer: agentHook.passPlayer,
+          rememberStrategy: agentHook.rememberStrategy,
+          resetDemo: agentHook.resetDemo
+        }
+      },
       connectionStatus: "connected",
       reconnect: agentHook.reconnect
     });
@@ -129,14 +179,101 @@ describe("Biddr application shell", () => {
   it("offers a manual retry after a terminal connection failure", async () => {
     const user = userEvent.setup();
     agentHook.useBiddrAgent.mockReturnValue({
-      agent: { state: createInitialAgentState() },
+      agent: {
+        state: createInitialAgentState(),
+        stub: {
+          advanceLot: agentHook.advanceLot,
+          passPlayer: agentHook.passPlayer,
+          rememberStrategy: agentHook.rememberStrategy,
+          resetDemo: agentHook.resetDemo
+        }
+      },
       connectionStatus: "unavailable",
       reconnect: agentHook.reconnect
     });
     render(<App sessionId={SESSION_ID} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Agent unavailable");
+    expect(screen.getByText("Agent unavailable")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(agentHook.reconnect).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Pass player" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset demo" })).toBeDisabled();
+  });
+
+  it("shows active preferences and saves strategy changes to the Agent", async () => {
+    const user = userEvent.setup();
+    render(<App sessionId={SESSION_ID} />);
+
+    expect(screen.getByLabelText("Active strategy preferences")).toHaveTextContent(
+      "30% reserve"
+    );
+    expect(screen.getByLabelText("Active strategy preferences")).toHaveTextContent(
+      "balanced risk"
+    );
+
+    fireEvent.change(screen.getByRole("slider", { name: /Reserve purse/i }), {
+      target: { value: "40" }
+    });
+    await user.click(screen.getByRole("radio", { name: "Aggressive" }));
+    await user.click(screen.getByRole("checkbox", { name: "Batter" }));
+    await user.click(screen.getByRole("button", { name: "Save strategy" }));
+
+    await waitFor(() =>
+      expect(agentHook.rememberStrategy).toHaveBeenCalledWith({
+        reservePercent: 40,
+        riskTolerance: "aggressive",
+        priorityRoles: ["fast-bowler", "all-rounder", "batter"]
+      })
+    );
+    expect(screen.getByText(/Strategy saved/)).toBeVisible();
+  });
+
+  it("passes and advances lots through callable Agent operations", async () => {
+    const user = userEvent.setup();
+    render(<App sessionId={SESSION_ID} />);
+
+    await user.click(screen.getByRole("button", { name: "Pass player" }));
+    await waitFor(() => expect(agentHook.passPlayer).toHaveBeenCalledOnce());
+
+    await user.click(screen.getByRole("button", { name: "Advance lot" }));
+    await waitFor(() => expect(agentHook.advanceLot).toHaveBeenCalledOnce());
+    expect(screen.getByText(/auction has advanced/)).toBeVisible();
+  });
+
+  it("supports keyboard activation for primary auction actions", async () => {
+    const user = userEvent.setup();
+    render(<App sessionId={SESSION_ID} />);
+
+    screen.getByRole("button", { name: "Pass player" }).focus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => expect(agentHook.passPlayer).toHaveBeenCalledOnce());
+  });
+
+  it("requires confirmation before resetting the demo", async () => {
+    const user = userEvent.setup();
+    render(<App sessionId={SESSION_ID} />);
+
+    await user.click(screen.getByRole("button", { name: "Reset demo" }));
+    expect(agentHook.resetDemo).not.toHaveBeenCalled();
+    expect(screen.getByRole("group", { name: "Confirm reset" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Confirm reset" }));
+    await waitFor(() => expect(agentHook.resetDemo).toHaveBeenCalledOnce());
+    expect(screen.getByText(/reset to the starting lineup/)).toBeVisible();
+  });
+
+  it("reports callable failures without exposing internal errors", async () => {
+    const user = userEvent.setup();
+    agentHook.advanceLot.mockRejectedValueOnce(new Error("private RPC detail"));
+    render(<App sessionId={SESSION_ID} />);
+
+    await user.click(screen.getByRole("button", { name: "Advance lot" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "could not apply that change"
+    );
+    expect(screen.queryByText("private RPC detail")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Advance lot" })).toBeEnabled();
   });
 });

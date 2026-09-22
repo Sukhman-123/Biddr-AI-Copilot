@@ -36,7 +36,10 @@ removes cross-origin configuration and a second hosting surface.
 
 The client renders the auction state, connects to an Agent, streams chat, and
 surfaces tool activity and approval requests. It does not calculate authoritative
-valuations or mutate auction state optimistically.
+valuations or mutate auction state optimistically. Strategy, pass, advance, and
+reset controls invoke validated callable Agent methods and wait for synchronized
+state. The two-column desktop workspace collapses into touch-friendly stacked
+controls without hiding connection or error feedback on small screens.
 
 On first load, it creates a random demo-session identifier and stores it in
 `localStorage`. The identifier selects the Agent instance. This prevents public

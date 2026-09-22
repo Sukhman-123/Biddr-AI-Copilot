@@ -127,16 +127,16 @@ and documented rather than silently bypassed.
 - [x] Streaming chat, suggested prompts, and accessible composer.
 - [x] Tool activity and structured recommendation cards.
 - [x] Approval and rejection controls.
-- [ ] Strategy-memory controls and visible active preferences.
-- [ ] Advance and reset interactions.
-- [ ] Responsive mobile and desktop layouts.
+- [x] Strategy-memory controls and visible active preferences.
+- [x] Advance and reset interactions.
+- [x] Responsive mobile and desktop layouts.
 
 ### Verification gate
 
-- [ ] Two fresh browsers do not share auction state.
-- [ ] Refresh preserves the current browser's state and chat.
-- [ ] Loading, streaming, empty, error, approval, and fallback states render.
-- [ ] Primary flows are keyboard accessible.
+- [x] Two fresh browsers do not share auction state.
+- [x] Refresh preserves the current browser's state and chat.
+- [x] Loading, streaming, empty, error, approval, and fallback states render.
+- [x] Primary flows are keyboard accessible.
 
 ## Phase 5 — Reliability and safety
 
