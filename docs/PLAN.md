@@ -126,7 +126,7 @@ and documented rather than silently bypassed.
 - [x] Auction dashboard and current-player presentation.
 - [x] Streaming chat, suggested prompts, and accessible composer.
 - [x] Tool activity and structured recommendation cards.
-- [ ] Approval and rejection controls.
+- [x] Approval and rejection controls.
 - [ ] Strategy-memory controls and visible active preferences.
 - [ ] Advance and reset interactions.
 - [ ] Responsive mobile and desktop layouts.

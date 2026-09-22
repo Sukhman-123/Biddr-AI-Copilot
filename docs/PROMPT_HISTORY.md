@@ -533,3 +533,36 @@ time delivery gate.
 The complete `npm run check` gate passed: ESLint, TypeScript, 67 unit tests,
 3 Worker-runtime tests, and both production bundles. Phase 4 pointer 5 is
 complete. Approval and rejection controls remain paused pending user approval.
+
+## Session 18 — Phase 4, pointer 6: Approval and rejection controls
+
+### User approval
+
+The user approved the next Phase 4 pointer after committing the tool-activity
+and structured-recommendation work.
+
+### AI actions
+
+- Connected approval-gated `commitSimulatedBid` requests to the Cloudflare chat
+  hook's approval-response API.
+- Displayed the strictly validated bid amount and explained that approval
+  spends purse and adds the current player while rejection leaves state intact.
+- Added keyboard-accessible approve and reject buttons with automatic Agent
+  continuation after the user's decision.
+- Locked both controls as soon as one decision was made to prevent duplicate
+  client submissions.
+- Disabled approval decisions while disconnected or while another chat action
+  was active.
+- Withheld the approve action when persisted bid input failed strict validation,
+  while preserving a safe reject path.
+- Added clear approved, rejected, disconnected, and retryable decision-error
+  feedback.
+- Added component coverage for both decisions, single submission, disconnects,
+  failed delivery, and malformed persisted approval input.
+
+### Pointer result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 72 unit tests,
+3 Worker-runtime tests, and both production bundles. Phase 4 pointer 6 is
+complete. Strategy-memory controls and visible active preferences remain paused
+pending user approval.

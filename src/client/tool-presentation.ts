@@ -29,6 +29,12 @@ const bidRecommendationSchema = z
   })
   .strict();
 
+const simulatedBidInputSchema = z
+  .object({
+    amountLakh: z.number().int().positive()
+  })
+  .strict();
+
 export type PresentedBidRecommendation = z.infer<
   typeof bidRecommendationSchema
 >;
@@ -37,5 +43,12 @@ export function parseBidRecommendation(
   value: unknown
 ): PresentedBidRecommendation | null {
   const result = bidRecommendationSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+export function parseSimulatedBidInput(
+  value: unknown
+): { amountLakh: number } | null {
+  const result = simulatedBidInputSchema.safeParse(value);
   return result.success ? result.data : null;
 }

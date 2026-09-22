@@ -1,6 +1,15 @@
-import { getToolName, type DynamicToolUIPart, type ToolUIPart } from "ai";
+import { useRef, useState } from "react";
+import {
+  getToolName,
+  type ChatAddToolApproveResponseFunction,
+  type DynamicToolUIPart,
+  type ToolUIPart
+} from "ai";
 import { formatLakhAsCrore } from "../client/format";
-import { parseBidRecommendation } from "../client/tool-presentation";
+import {
+  parseBidRecommendation,
+  parseSimulatedBidInput
+} from "../client/tool-presentation";
 
 type AnyToolPart = ToolUIPart | DynamicToolUIPart;
 
@@ -94,7 +103,97 @@ function RecommendationCard({ output }: { output: unknown }) {
   );
 }
 
-export function ToolActivity({ part }: { part: AnyToolPart }) {
+function ApprovalControls({
+  part,
+  disabled,
+  onRespond
+}: {
+  part: AnyToolPart & { state: "approval-requested" };
+  disabled: boolean;
+  onRespond: ChatAddToolApproveResponseFunction | undefined;
+}) {
+  const input = parseSimulatedBidInput(part.input);
+  const decidingRef = useRef(false);
+  const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
+  const [error, setError] = useState(false);
+
+  const respond = async (approved: boolean) => {
+    if (disabled || !onRespond || decidingRef.current) return;
+
+    decidingRef.current = true;
+    setDecision(approved ? "approve" : "reject");
+    setError(false);
+
+    try {
+      await onRespond({ id: part.approval.id, approved });
+    } catch {
+      decidingRef.current = false;
+      setDecision(null);
+      setError(true);
+    }
+  };
+
+  const controlsDisabled = disabled || !onRespond || decision !== null;
+
+  return (
+    <section className="approval-panel" aria-label="Simulated bid approval">
+      {input ? (
+        <>
+          <strong>Confirm {formatLakhAsCrore(input.amountLakh)} bid?</strong>
+          <p>
+            Approval spends purse and adds the current player to your simulated
+            squad. Rejection leaves the auction unchanged.
+          </p>
+        </>
+      ) : (
+        <p role="alert">
+          The proposed bid details could not be verified. Reject this request
+          and ask Biddr to prepare it again.
+        </p>
+      )}
+
+      <div className="approval-actions">
+        {input ? (
+          <button
+            className="button button-primary"
+            type="button"
+            disabled={controlsDisabled}
+            onClick={() => void respond(true)}
+          >
+            {decision === "approve" ? "Approving…" : "Approve bid"}
+          </button>
+        ) : null}
+        <button
+          className="button button-secondary"
+          type="button"
+          disabled={controlsDisabled}
+          onClick={() => void respond(false)}
+        >
+          {decision === "reject" ? "Rejecting…" : "Reject"}
+        </button>
+      </div>
+
+      {disabled ? (
+        <small>Reconnect to the Agent before responding.</small>
+      ) : null}
+      {error ? (
+        <small className="approval-error" role="alert">
+          Your decision could not be sent. Please try again.
+        </small>
+      ) : null}
+    </section>
+  );
+}
+
+export function ToolActivity({
+  part,
+  approvalDisabled = false,
+  onApprovalResponse
+}: {
+  part: AnyToolPart;
+  approvalDisabled?: boolean;
+  onApprovalResponse?: ChatAddToolApproveResponseFunction;
+}) {
   const toolName = getToolName(part);
   const activity = getActivityState(part);
   const label = TOOL_LABELS[toolName] ?? "Using an auction tool";
@@ -115,8 +214,27 @@ export function ToolActivity({ part }: { part: AnyToolPart }) {
         <p role="alert">That auction check could not complete. Please try again.</p>
       ) : null}
 
-      {part.state === "approval-requested" ? (
-        <p>The proposed action is waiting for your decision.</p>
+      {part.state === "approval-requested" &&
+      toolName === "commitSimulatedBid" ? (
+        <ApprovalControls
+          part={part}
+          disabled={approvalDisabled}
+          onRespond={onApprovalResponse}
+        />
+      ) : part.state === "approval-requested" ? (
+        <p>This tool cannot be approved from the auction interface.</p>
+      ) : null}
+
+      {toolName === "commitSimulatedBid" &&
+      ((part.state === "approval-responded" && !part.approval.approved) ||
+        part.state === "output-denied") ? (
+        <p>Bid rejected. No auction state was changed.</p>
+      ) : null}
+
+      {toolName === "commitSimulatedBid" &&
+      part.state === "approval-responded" &&
+      part.approval.approved ? (
+        <p>Bid approved. Applying the auction update…</p>
       ) : null}
 
       {toolName === "analyzeBid" && part.state === "output-available" ? (

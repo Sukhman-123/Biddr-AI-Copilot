@@ -36,12 +36,17 @@ export function CopilotChat({
   const [input, setInput] = useState("");
   const transcriptRef = useRef<HTMLDivElement>(null);
   const {
+    addToolApprovalResponse,
     messages,
     sendMessage,
     status,
     isStreaming,
     isRecovering
-  } = useAgentChat({ agent, resume: true });
+  } = useAgentChat({
+    agent,
+    autoContinueAfterToolResult: true,
+    resume: true
+  });
   const busy = status === "submitted" || isStreaming || isRecovering;
   const connected = connectionStatus === "connected";
   const canSend = connected && !busy && input.trim().length > 0;
@@ -124,7 +129,14 @@ export function CopilotChat({
                     }
 
                     if (isToolUIPart(part)) {
-                      return <ToolActivity part={part} key={part.toolCallId} />;
+                      return (
+                        <ToolActivity
+                          part={part}
+                          approvalDisabled={!connected || busy}
+                          onApprovalResponse={addToolApprovalResponse}
+                          key={part.toolCallId}
+                        />
+                      );
                     }
 
                     return null;

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CopilotChat } from "../../src/components/copilot-chat";
 
 const chatHook = vi.hoisted(() => ({
+  addToolApprovalResponse: vi.fn(),
   sendMessage: vi.fn(),
   useAgentChat: vi.fn()
 }));
@@ -45,6 +46,7 @@ const recommendation = {
 function mockChat(overrides: Record<string, unknown> = {}) {
   chatHook.useAgentChat.mockReturnValue({
     messages: [],
+    addToolApprovalResponse: chatHook.addToolApprovalResponse,
     sendMessage: chatHook.sendMessage,
     status: "idle",
     isStreaming: false,
@@ -55,6 +57,7 @@ function mockChat(overrides: Record<string, unknown> = {}) {
 
 describe("Copilot chat", () => {
   beforeEach(() => {
+    chatHook.addToolApprovalResponse.mockReset();
     chatHook.sendMessage.mockReset();
     chatHook.useAgentChat.mockReset();
     mockChat();
@@ -67,6 +70,7 @@ describe("Copilot chat", () => {
     const composer = screen.getByRole("textbox", { name: "Ask the copilot" });
     expect(chatHook.useAgentChat).toHaveBeenCalledWith({
       agent,
+      autoContinueAfterToolResult: true,
       resume: true
     });
     await user.type(composer, "  How is our purse?  ");
@@ -199,7 +203,7 @@ describe("Copilot chat", () => {
     ).toBeVisible();
   });
 
-  it("shows safe tool errors and approval-required activity without controls", () => {
+  it("shows safe tool errors and explicit approval-required controls", () => {
     mockChat({
       messages: [
         {
@@ -232,10 +236,128 @@ describe("Copilot chat", () => {
     expect(screen.queryByText("private provider detail")).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("Preparing simulated bid: Approval required")
-    ).toHaveTextContent("waiting for your decision");
+    ).toHaveTextContent("Confirm ₹2.60 Cr bid?");
+    expect(screen.getByRole("button", { name: "Approve bid" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reject" })).toBeEnabled();
+  });
+
+  it.each([
+    { buttonName: "Approve bid", approved: true },
+    { buttonName: "Reject", approved: false }
+  ])("submits an approval decision when choosing $buttonName", async ({
+    buttonName,
+    approved
+  }) => {
+    const user = userEvent.setup();
+    mockChat({
+      messages: [
+        {
+          id: "assistant-approval",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-commitSimulatedBid",
+              toolCallId: "commit-approval",
+              state: "approval-requested",
+              input: { amountLakh: 260 },
+              approval: { id: "approval-choice" }
+            }
+          ]
+        }
+      ]
+    });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+
+    await user.click(screen.getByRole("button", { name: buttonName }));
+
+    expect(chatHook.addToolApprovalResponse).toHaveBeenCalledTimes(1);
+    expect(chatHook.addToolApprovalResponse).toHaveBeenCalledWith({
+      id: "approval-choice",
+      approved
+    });
+    expect(screen.getByRole("button", { name: /Approving|Rejecting/ })).toBeDisabled();
+  });
+
+  it("blocks approval when disconnected", () => {
+    mockChat({
+      messages: [
+        {
+          id: "assistant-offline-approval",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-commitSimulatedBid",
+              toolCallId: "commit-offline",
+              state: "approval-requested",
+              input: { amountLakh: 260 },
+              approval: { id: "approval-offline" }
+            }
+          ]
+        }
+      ]
+    });
+    render(<CopilotChat agent={agent} connectionStatus="reconnecting" />);
+
+    expect(screen.getByRole("button", { name: "Approve bid" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reject" })).toBeDisabled();
+    expect(screen.getByText("Reconnect to the Agent before responding.")).toBeVisible();
+  });
+
+  it("recovers when an approval decision cannot be sent", async () => {
+    const user = userEvent.setup();
+    chatHook.addToolApprovalResponse.mockRejectedValueOnce(
+      new Error("socket closed")
+    );
+    mockChat({
+      messages: [
+        {
+          id: "assistant-failed-approval",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-commitSimulatedBid",
+              toolCallId: "commit-failed",
+              state: "approval-requested",
+              input: { amountLakh: 260 },
+              approval: { id: "approval-failed" }
+            }
+          ]
+        }
+      ]
+    });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+
+    await user.click(screen.getByRole("button", { name: "Approve bid" }));
+
     expect(
-      screen.queryByRole("button", { name: /approve|reject/i })
-    ).not.toBeInTheDocument();
+      await screen.findByText("Your decision could not be sent. Please try again.")
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Approve bid" })).toBeEnabled();
+  });
+
+  it("never offers approval for malformed persisted bid input", () => {
+    mockChat({
+      messages: [
+        {
+          id: "assistant-invalid-approval",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-commitSimulatedBid",
+              toolCallId: "commit-invalid",
+              state: "approval-requested",
+              input: { amountLakh: "260" },
+              approval: { id: "approval-invalid" }
+            }
+          ]
+        }
+      ]
+    });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+
+    expect(screen.queryByRole("button", { name: "Approve bid" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reject" })).toBeEnabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("could not be verified");
   });
 
   it("does not render an unvalidated recommendation payload", () => {
