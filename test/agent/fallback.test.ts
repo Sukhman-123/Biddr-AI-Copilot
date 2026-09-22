@@ -13,7 +13,7 @@ describe("deterministic inference fallback", () => {
       createInitialAuctionState()
     );
 
-    expect(message).toContain("Workers AI is temporarily unavailable");
+    expect(message).toContain("Workers AI is unavailable or its daily quota");
     expect(message).toContain("BID on Aarya Sen");
     expect(message).toContain("next valid bid is ₹260L");
     expect(message).toContain("maximum recommended bid is ₹460L");

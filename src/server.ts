@@ -43,7 +43,10 @@ import {
   resetAgentState,
   type BiddrAgentState
 } from "./agent/state";
-import { createAuctionTools } from "./agent/tools";
+import {
+  assertBiddrModelToolSurface,
+  createAuctionTools
+} from "./agent/tools";
 import type { StrategyPreferences } from "./domain";
 
 /**
@@ -117,6 +120,7 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
         getAgentState: () => this.getValidatedState(),
         setAgentState: (nextState) => this.setValidatedState(nextState)
       });
+      assertBiddrModelToolSurface(tools);
       const validatedMessages = await safeValidateUIMessages({
         messages: this.messages,
         // The Agent SDK supplies untyped persisted UI messages. Runtime tool

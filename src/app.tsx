@@ -149,6 +149,17 @@ function App({ sessionId }: AppProps) {
                   Retry
                 </button>
               ) : null}
+              {connectionStatus === "reconnecting" ? (
+                <p className="connection-help" role="status">
+                  Restoring the connection. Your auction state remains saved.
+                </p>
+              ) : null}
+              {connectionStatus === "unavailable" ? (
+                <p className="connection-help" role="alert">
+                  The Agent is unavailable. Your auction state remains saved;
+                  retry when your connection is ready.
+                </p>
+              ) : null}
             </div>
           </div>
 

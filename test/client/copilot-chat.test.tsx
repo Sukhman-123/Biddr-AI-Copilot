@@ -158,7 +158,7 @@ describe("Copilot chat", () => {
     expect(screen.getByRole("textbox")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "conversation is still saved"
+      "conversation and auction state are saved"
     );
     await user.click(
       screen.getByRole("button", {

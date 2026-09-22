@@ -11,9 +11,8 @@ import {
 
 const MAX_PROCESSED_ACTION_IDS = 50;
 
-export type CommittedBidResult = {
+export type StoredBidResult = {
   actionId: string;
-  duplicate: boolean;
   playerId: string;
   playerName: string;
   amountLakh: number;
@@ -21,17 +20,23 @@ export type CommittedBidResult = {
   squadSize: number;
 };
 
+export type CommittedBidResult = StoredBidResult & {
+  duplicate: boolean;
+};
+
 export type BiddrAgentState = {
   schemaVersion: 1;
   auction: AuctionState;
   processedActionIds: string[];
+  processedBidResults: Record<string, StoredBidResult>;
 };
 
 export function createInitialAgentState(): BiddrAgentState {
   return {
     schemaVersion: 1,
     auction: createInitialAuctionState(),
-    processedActionIds: []
+    processedActionIds: [],
+    processedBidResults: {}
   };
 }
 
@@ -42,7 +47,8 @@ export function rememberAgentStrategy(
   return {
     ...state,
     auction: withStrategy(state.auction, strategy),
-    processedActionIds: [...state.processedActionIds]
+    processedActionIds: [...state.processedActionIds],
+    processedBidResults: { ...state.processedBidResults }
   };
 }
 
@@ -52,7 +58,8 @@ export function passAgentCurrentPlayer(
   return {
     ...state,
     auction: passCurrentPlayer(state.auction),
-    processedActionIds: [...state.processedActionIds]
+    processedActionIds: [...state.processedActionIds],
+    processedBidResults: { ...state.processedBidResults }
   };
 }
 
@@ -62,7 +69,8 @@ export function advanceAgentCurrentLot(
   return {
     ...state,
     auction: advanceCurrentLot(state.auction),
-    processedActionIds: [...state.processedActionIds]
+    processedActionIds: [...state.processedActionIds],
+    processedBidResults: { ...state.processedBidResults }
   };
 }
 
@@ -71,6 +79,18 @@ export function commitAgentBid(
   amountLakh: number,
   actionId: string
 ): { state: BiddrAgentState; result: CommittedBidResult } {
+  if (actionId.length === 0 || actionId.length > 256) {
+    throw new Error("Approved bid is missing a valid action identifier.");
+  }
+
+  const previousResult = state.processedBidResults[actionId];
+  if (previousResult) {
+    return {
+      state,
+      result: { ...previousResult, duplicate: true }
+    };
+  }
+
   if (state.processedActionIds.includes(actionId)) {
     return {
       state,
@@ -92,25 +112,33 @@ export function commitAgentBid(
   }
 
   const auction = commitBid(state.auction, amountLakh);
+  const result: StoredBidResult = {
+    actionId,
+    playerId: player.id,
+    playerName: player.name,
+    amountLakh,
+    purseRemainingLakh: auction.purseRemainingLakh,
+    squadSize: auction.squad.length
+  };
+  const processedActionIds = [...state.processedActionIds, actionId].slice(
+    -MAX_PROCESSED_ACTION_IDS
+  );
+  const retainedResults = Object.fromEntries(
+    processedActionIds.flatMap((id) => {
+      const stored = id === actionId ? result : state.processedBidResults[id];
+      return stored ? [[id, stored]] : [];
+    })
+  );
   const nextState: BiddrAgentState = {
     ...state,
     auction,
-    processedActionIds: [...state.processedActionIds, actionId].slice(
-      -MAX_PROCESSED_ACTION_IDS
-    )
+    processedActionIds,
+    processedBidResults: retainedResults
   };
 
   return {
     state: nextState,
-    result: {
-      actionId,
-      duplicate: false,
-      playerId: player.id,
-      playerName: player.name,
-      amountLakh,
-      purseRemainingLakh: auction.purseRemainingLakh,
-      squadSize: auction.squad.length
-    }
+    result: { ...result, duplicate: false }
   };
 }
 

@@ -94,5 +94,20 @@ describe("persistent Agent state transitions", () => {
     expect(() => parseBiddrAgentState(duplicateAction)).toThrow(
       "must not contain duplicates"
     );
+
+    const orphanedResult = structuredClone(valid);
+    orphanedResult.processedBidResults = {
+      "not-retained": {
+        actionId: "not-retained",
+        playerId: "aarya-sen",
+        playerName: "Aarya Sen",
+        amountLakh: 260,
+        purseRemainingLakh: 3600,
+        squadSize: 8
+      }
+    };
+    expect(() => parseBiddrAgentState(orphanedResult)).toThrow(
+      "Stored bid results"
+    );
   });
 });

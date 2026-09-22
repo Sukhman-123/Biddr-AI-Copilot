@@ -634,3 +634,32 @@ The user approved implementation of the first three Phase 5 pointers together.
 The complete `npm run check` gate passed: ESLint, TypeScript, 85 unit tests,
 3 Worker-runtime tests, and both production bundles. Phase 5 pointers 1–3 are
 complete; pointers 4–8 remain intentionally paused pending user approval.
+
+## Session 21 — Phase 5, pointers 4–6: Capabilities, idempotency, and failures
+
+### User approval
+
+The user approved the next three Phase 5 pointers together.
+
+### AI actions
+
+- Defined and runtime-checked the complete, auction-only model tool allowlist.
+  This blocks accidental introduction of URL, generic network, code-execution,
+  payment, or external-write capabilities.
+- Added a bounded mapping of approved action IDs to their original bid results.
+  Replays now return the original player, amount, purse, and squad result while
+  leaving state unchanged.
+- Added schema consistency checks between retained action IDs and stored results,
+  while preserving compatibility with earlier persisted state that did not yet
+  contain a result mapping.
+- Improved model, quota, chat, reconnect, and terminal connection feedback to
+  explain that auction state is safe and state a clear recovery action, without
+  exposing provider errors.
+- Added regression coverage for rejected unapproved tools, exact idempotent
+  replay data, schema consistency, quota fallback copy, and terminal retry UI.
+
+### Phase result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 86 unit tests,
+3 Worker-runtime tests, and both production bundles. Phase 5 pointers 4–6 are
+complete; pointers 7–8 remain intentionally paused pending user approval.

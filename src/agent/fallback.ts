@@ -17,12 +17,12 @@ export function buildDeterministicFallbackMessage(
   const player = getCurrentPlayer(state);
 
   if (!player) {
-    return "Workers AI is temporarily unavailable. The deterministic auction state shows that all lots are complete, so there is no active bid to evaluate.";
+    return "Workers AI is unavailable or its daily quota has been reached. Biddr is using its deterministic auction state: all lots are complete, so there is no active bid to evaluate.";
   }
 
   const recommendation = analyzeBid(state);
   return [
-    "Workers AI is temporarily unavailable, so Biddr is using its deterministic auction engine.",
+    "Workers AI is unavailable or its daily quota has been reached, so Biddr is using its deterministic auction engine.",
     `${recommendation.decision} on ${player.name}.`,
     `The next valid bid is ₹${recommendation.nextBidLakh}L, the maximum recommended bid is ₹${recommendation.maximumBidLakh}L, and ₹${state.purseRemainingLakh}L remains in the purse.`,
     ...recommendation.reasons

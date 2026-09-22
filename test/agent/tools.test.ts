@@ -5,6 +5,8 @@ import {
   passAgentCurrentPlayer
 } from "../../src/agent/state";
 import {
+  assertBiddrModelToolSurface,
+  BIDDR_MODEL_TOOL_NAMES,
   commitSimulatedBidInputSchema,
   createAuctionToolHandlers,
   createAuctionTools,
@@ -67,21 +69,23 @@ describe("deterministic auction tool handlers", () => {
     const { context } = createContext();
     const tools = createAuctionTools(context);
 
-    expect(Object.keys(tools).sort()).toEqual([
-      "analyzeBid",
-      "commitSimulatedBid",
-      "getAuctionState",
-      "getCurrentPlayer",
-      "getStrategy",
-      "getTeamComposition",
-      "listRemainingPlayers"
-    ]);
+    expect(Object.keys(tools).sort()).toEqual([...BIDDR_MODEL_TOOL_NAMES].sort());
+    expect(() => assertBiddrModelToolSurface(tools)).not.toThrow();
     for (const configuredTool of Object.values(tools)) {
       expect(configuredTool.inputSchema).toBeDefined();
       expect(configuredTool.outputSchema).toBeDefined();
       expect(configuredTool.execute).toBeTypeOf("function");
     }
     expect(tools.commitSimulatedBid.needsApproval).toBe(true);
+  });
+
+  it("rejects a model tool surface with unapproved capabilities", () => {
+    expect(() =>
+      assertBiddrModelToolSurface({
+        getAuctionState: {},
+        openUrl: {}
+      })
+    ).toThrow("approved auction-only surface");
   });
 
   it("grounds auction, player, composition, and strategy data in current state", () => {
@@ -224,6 +228,13 @@ describe("deterministic auction tool handlers", () => {
     );
     expect(afterFirst.auction.squad).toHaveLength(before.auction.squad.length + 1);
     expect(replay).toMatchObject({ duplicate: true, actionId: "approved-bid-1" });
+    expect(replay).toMatchObject({
+      playerId: "aarya-sen",
+      playerName: "Aarya Sen",
+      amountLakh: 260,
+      purseRemainingLakh: 3600,
+      squadSize: 8
+    });
     expect(getState()).toEqual(afterFirst);
   });
 

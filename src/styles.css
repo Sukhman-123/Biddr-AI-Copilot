@@ -688,6 +688,14 @@ h1 {
   cursor: pointer;
 }
 
+.connection-help {
+  width: 100%;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .connection-retry:hover {
   border-color: var(--accent-dark);
 }

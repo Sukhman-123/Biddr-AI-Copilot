@@ -159,8 +159,8 @@ export function CopilotChat({
 
         {status === "error" ? (
           <p className="chat-error" role="alert">
-            Biddr could not complete that response. Your conversation is still
-            saved; try sending the question again.
+            The model response could not finish. Your conversation and auction
+            state are saved; check your connection and send the question again.
           </p>
         ) : null}
 

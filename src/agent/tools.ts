@@ -17,6 +17,35 @@ import {
 } from "./state";
 import { strategyPreferencesSchema } from "./schemas";
 
+/**
+ * This is the entire model-exposed capability surface. Keep direct Agent
+ * callables separate: they are browser controls, not model tools.
+ */
+export const BIDDR_MODEL_TOOL_NAMES = [
+  "analyzeBid",
+  "commitSimulatedBid",
+  "getAuctionState",
+  "getCurrentPlayer",
+  "getStrategy",
+  "getTeamComposition",
+  "listRemainingPlayers"
+] as const;
+
+export function assertBiddrModelToolSurface(
+  tools: Record<string, unknown>
+): void {
+  const actual = Object.keys(tools).sort();
+  const expected = [...BIDDR_MODEL_TOOL_NAMES].sort();
+  if (
+    actual.length !== expected.length ||
+    actual.some((toolName, index) => toolName !== expected[index])
+  ) {
+    throw new Error(
+      "Biddr model tools must remain limited to the approved auction-only surface."
+    );
+  }
+}
+
 const emptyInputSchema = z.object({}).strict();
 
 export const listRemainingPlayersInputSchema = z

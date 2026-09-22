@@ -92,14 +92,16 @@ type BiddrAgentState = {
   schemaVersion: 1;
   auction: AuctionState;
   processedActionIds: string[];
+  processedBidResults: Record<string, StoredBidResult>;
 };
 ```
 
 `AuctionState` contains the current lot index, team purse, roster, player
 statuses, current bid, bid history, event log, and `StrategyPreferences`.
 Preferences contain reserve percentage, risk tolerance, and prioritized roles.
-The processed action IDs provide a bounded idempotency record for
-state-changing approvals.
+The processed action IDs and matching stored results provide a bounded
+idempotency record for state-changing approvals. A replay returns the original
+result without spending purse or adding a player again.
 
 State is JSON-serializable and replaced through `setState()` so connected
 clients receive synchronized updates. If event volume later makes the snapshot
@@ -149,6 +151,8 @@ rules at execution time; prior analysis is never treated as authorization.
 - Player data is fictional and treated as data, never as instructions.
 - There is no arbitrary network-fetch, URL-open, shell, code-execution, payment,
   or external messaging tool.
+- The model tool surface is allowlisted at runtime; adding an unapproved tool
+  fails before inference begins.
 - The browser cannot directly submit authoritative auction state.
 - Tool inputs and outputs, client messages, persisted Agent state, and model
   transcript structure are validated with Zod before use.
@@ -162,8 +166,8 @@ rules at execution time; prior analysis is never treated as authorization.
 
 | Failure | User-visible behavior |
 | --- | --- |
-| Workers AI error or daily quota exhausted | Show engine recommendation with deterministic explanatory copy |
-| WebSocket disconnect | Display reconnecting state and resume supported streams |
+| Workers AI error or daily quota exhausted | Show engine recommendation with deterministic explanatory copy and explain that quota may be exhausted |
+| WebSocket disconnect | Display reconnecting state, preserve state, and offer retry after a terminal failure |
 | Invalid tool input | Reject without mutation and return a concise validation message |
 | Stale bid proposal | Reject and ask for a fresh analysis of the current lot |
 | Duplicate approved action | Return the prior outcome without a second mutation |

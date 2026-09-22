@@ -1,8 +1,7 @@
 import { z } from "zod";
 import {
   PLAYER_ROLES,
-  assertAuctionState,
-  type PlayerRole
+  assertAuctionState
 } from "../domain";
 import type { BiddrAgentState } from "./state";
 
@@ -107,21 +106,43 @@ export const biddrAgentStateSchema = z
   .object({
     schemaVersion: z.literal(1),
     auction: auctionStateSchema,
-    processedActionIds: z.array(z.string().min(1).max(256)).max(50)
+    processedActionIds: z.array(z.string().min(1).max(256)).max(50),
+    processedBidResults: z
+      .record(
+        z.string().min(1).max(256),
+        z
+          .object({
+            actionId: z.string().min(1).max(256),
+            playerId: z.string().min(1).max(128),
+            playerName: z.string().min(1).max(160),
+            amountLakh: z.number().int().positive(),
+            purseRemainingLakh: z.number().int().nonnegative(),
+            squadSize: z.number().int().nonnegative()
+          })
+          .strict()
+      )
+      .default({})
   })
   .strict()
   .refine(
     (state) =>
       new Set(state.processedActionIds).size === state.processedActionIds.length,
     { message: "Processed action IDs must not contain duplicates." }
+  )
+  .refine(
+    (state) =>
+      Object.entries(state.processedBidResults).every(
+        ([actionId, result]) =>
+          state.processedActionIds.includes(actionId) && result.actionId === actionId
+      ),
+    {
+      message:
+        "Stored bid results must belong to a retained processed action identifier."
+    }
   );
 
 export function parseBiddrAgentState(value: unknown): BiddrAgentState {
   const state = biddrAgentStateSchema.parse(value);
   assertAuctionState(state.auction);
   return state;
-}
-
-export function isPlayerRole(value: unknown): value is PlayerRole {
-  return playerRoleSchema.safeParse(value).success;
 }

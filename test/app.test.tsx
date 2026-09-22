@@ -194,6 +194,9 @@ describe("Biddr application shell", () => {
     render(<App sessionId={SESSION_ID} />);
 
     expect(screen.getByText("Agent unavailable")).toBeVisible();
+    expect(
+      screen.getByText(/The Agent is unavailable\. Your auction state remains saved/)
+    ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(agentHook.reconnect).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Pass player" })).toBeDisabled();

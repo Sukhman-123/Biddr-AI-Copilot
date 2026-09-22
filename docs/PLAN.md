@@ -145,9 +145,9 @@ and documented rather than silently bypassed.
 - [x] Zod validation at every untrusted boundary.
 - [x] Message length and tool-step limits.
 - [x] Prompt separates instructions from untrusted auction content.
-- [ ] No arbitrary URL, generic fetch, code execution, or external-write tool.
-- [ ] Defensive state invariants and idempotent approval handling.
-- [ ] Friendly network, model, quota, and reconnect errors.
+- [x] No arbitrary URL, generic fetch, code execution, or external-write tool.
+- [x] Defensive state invariants and idempotent approval handling.
+- [x] Friendly network, model, quota, and reconnect errors.
 - [ ] Expanded unit, Agent integration, and component tests.
 - [ ] Accessibility and responsive-layout review.
 
