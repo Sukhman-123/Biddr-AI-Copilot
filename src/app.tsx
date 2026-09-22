@@ -1,22 +1,13 @@
 import {
   ChatCircleDotsIcon,
-  GaugeIcon,
   ShieldCheckIcon,
-  SparkleIcon,
-  UsersThreeIcon,
-  WalletIcon
+  SparkleIcon
 } from "@phosphor-icons/react";
 import {
   useBiddrAgent,
   type AgentConnectionStatus
 } from "./client/use-biddr-agent";
-
-const squadRoles = [
-  { role: "Batters", current: 3, target: 5 },
-  { role: "All-rounders", current: 1, target: 3 },
-  { role: "Wicketkeepers", current: 1, target: 2 },
-  { role: "Bowlers", current: 2, target: 5 }
-];
+import { AuctionDashboard } from "./components/auction-dashboard";
 
 const connectionLabels: Record<AgentConnectionStatus, string> = {
   connecting: "Connecting to Agent",
@@ -30,7 +21,7 @@ type AppProps = {
 };
 
 function App({ sessionId }: AppProps) {
-  const { connectionStatus, reconnect } = useBiddrAgent(sessionId);
+  const { agent, connectionStatus, reconnect } = useBiddrAgent(sessionId);
 
   return (
     <div className="app-shell">
@@ -57,106 +48,7 @@ function App({ sessionId }: AppProps) {
       </header>
 
       <main id="main" className="workspace">
-        <section className="auction-column" aria-labelledby="auction-heading">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Live simulation</p>
-              <h1 id="auction-heading">Auction command</h1>
-            </div>
-            <span className="lot-pill">Lot 04 / 12</span>
-          </div>
-
-          <article className="player-card">
-            <div className="player-card-topline">
-              <span className="role-label">Fast bowler</span>
-              <span className="fictional-label">Fictional player</span>
-            </div>
-            <div className="player-identity">
-              <div className="player-avatar" aria-hidden="true">
-                AS
-              </div>
-              <div>
-                <h2>Aarya Sen</h2>
-                <p>Right-arm pace · New-ball specialist</p>
-              </div>
-            </div>
-            <dl className="bid-grid">
-              <div>
-                <dt>Base price</dt>
-                <dd>₹1.20 Cr</dd>
-              </div>
-              <div>
-                <dt>Current bid</dt>
-                <dd>₹2.40 Cr</dd>
-              </div>
-              <div>
-                <dt>Next bid</dt>
-                <dd className="accent-text">₹2.60 Cr</dd>
-              </div>
-            </dl>
-            <div className="placeholder-actions" aria-label="Auction controls preview">
-              <button className="button button-primary" type="button" disabled>
-                Place bid
-              </button>
-              <button className="button button-secondary" type="button" disabled>
-                Pass
-              </button>
-            </div>
-          </article>
-
-          <section className="metrics-grid" aria-label="Team auction metrics">
-            <article className="metric-card">
-              <WalletIcon size={20} aria-hidden="true" />
-              <span>Available purse</span>
-              <strong>₹38.60 Cr</strong>
-              <small>64% remaining</small>
-            </article>
-            <article className="metric-card">
-              <UsersThreeIcon size={20} aria-hidden="true" />
-              <span>Squad</span>
-              <strong>7 / 15</strong>
-              <small>8 slots open</small>
-            </article>
-            <article className="metric-card">
-              <GaugeIcon size={20} aria-hidden="true" />
-              <span>Reserve target</span>
-              <strong>30%</strong>
-              <small>Strategy memory</small>
-            </article>
-          </section>
-
-          <article className="panel squad-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Composition</p>
-                <h2>Squad requirements</h2>
-              </div>
-              <span>7 signed</span>
-            </div>
-            <ul className="role-list">
-              {squadRoles.map(({ role, current, target }) => (
-                <li key={role}>
-                  <div>
-                    <span>{role}</span>
-                    <strong>
-                      {current} / {target}
-                    </strong>
-                  </div>
-                  <div
-                    className="progress-track"
-                    role="progressbar"
-                    aria-label={`${role}: ${current} of ${target}`}
-                    aria-valuemin={0}
-                    aria-valuemax={target}
-                    aria-valuenow={current}
-                  >
-                    <span style={{ width: `${(current / target) * 100}%` }} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </article>
-        </section>
+        <AuctionDashboard agentState={agent.state} />
 
         <aside className="copilot-column" aria-labelledby="copilot-heading">
           <div className="copilot-header">

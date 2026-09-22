@@ -292,6 +292,12 @@ h1 {
   font: 700 20px/1.2 ui-sans-serif, system-ui, sans-serif;
 }
 
+.bid-grid small {
+  display: block;
+  margin-top: 5px;
+  color: #71817a;
+}
+
 .accent-text {
   color: var(--accent);
 }
@@ -300,6 +306,55 @@ h1 {
   display: flex;
   gap: 10px;
   margin-top: 24px;
+}
+
+.dashboard-loading {
+  min-height: 235px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.dashboard-loading h2,
+.auction-complete-card h2 {
+  margin-bottom: 7px;
+}
+
+.dashboard-loading p,
+.auction-complete-card p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.loading-mark {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: loading-spin 0.8s linear infinite;
+}
+
+.auction-complete-card {
+  min-height: 235px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.auction-complete-card h2 {
+  margin-top: 22px;
+  font-size: clamp(24px, 3.4vw, 35px);
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .button,

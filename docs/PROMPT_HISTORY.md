@@ -447,3 +447,30 @@ The complete `npm run check` gate passed: ESLint, TypeScript, 55 unit tests,
 3 Worker-runtime tests, and both production bundles. Phase 4 pointer 2 is
 complete. The auction dashboard and current-player presentation remain paused
 pending user approval.
+
+## Session 15 — Phase 4, pointer 3: Live auction dashboard
+
+### User approval
+
+The user approved the next Phase 4 pointer after committing live Agent
+connection and reconnect handling.
+
+### AI actions
+
+- Replaced the hard-coded auction preview with state synchronized from the
+  session-specific Agent connection.
+- Rendered the active lot, fictional player identity, role, rating, style,
+  current bidder, base/current/next bids, purse, squad size, reserve target,
+  and all five role requirements.
+- Added explicit loading and completed-auction presentations.
+- Kept bid, pass, and reset controls disabled because their behavior belongs to
+  later Phase 4 pointers.
+- Added component tests proving the dashboard follows initial, advanced,
+  loading, and completed Agent state.
+
+### Pointer result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 59 unit tests,
+3 Worker-runtime tests, and both production bundles. Phase 4 pointer 3 is
+complete. Streaming chat, suggested prompts, and the accessible composer remain
+paused pending user approval.

@@ -123,7 +123,7 @@ and documented rather than silently bypassed.
 
 - [x] Stable per-browser demo-session identifier.
 - [x] Live Agent connection and reconnect behavior.
-- [ ] Auction dashboard and current-player presentation.
+- [x] Auction dashboard and current-player presentation.
 - [ ] Streaming chat, suggested prompts, and accessible composer.
 - [ ] Tool activity and structured recommendation cards.
 - [ ] Approval and rejection controls.
