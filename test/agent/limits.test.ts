@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_MODEL_CONTEXT_MESSAGES,
+  MAX_MODEL_CONTEXT_CHARACTERS,
   MAX_OUTPUT_TOKENS,
   MAX_TOOL_STEPS,
+  MAX_USER_MESSAGE_CHARACTERS,
+  selectBoundedChatContext,
   selectRecentChatMessages
 } from "../../src/agent/limits";
 
@@ -11,6 +14,8 @@ describe("model execution limits", () => {
     expect(MAX_TOOL_STEPS).toBe(6);
     expect(MAX_OUTPUT_TOKENS).toBe(768);
     expect(MAX_MODEL_CONTEXT_MESSAGES).toBe(24);
+    expect(MAX_MODEL_CONTEXT_CHARACTERS).toBe(12_000);
+    expect(MAX_USER_MESSAGE_CHARACTERS).toBe(1_200);
   });
 
   it("keeps only the recent bounded conversation window", () => {
@@ -44,5 +49,19 @@ describe("model execution limits", () => {
     expect(() => selectRecentChatMessages([], 0)).toThrow(RangeError);
     expect(() => selectRecentChatMessages([], 1.5)).toThrow(RangeError);
   });
-});
 
+  it("caps model context by character budget as well as message count", () => {
+    const selected = selectBoundedChatContext(
+      [
+        { id: "1", role: "user", text: "a".repeat(40) },
+        { id: "2", role: "assistant", text: "b".repeat(40) },
+        { id: "3", role: "user", text: "c".repeat(40) }
+      ],
+      3,
+      80
+    );
+
+    expect(selected.map((message) => message.id)).toEqual(["3"]);
+    expect(() => selectBoundedChatContext([], 3, 0)).toThrow(RangeError);
+  });
+});

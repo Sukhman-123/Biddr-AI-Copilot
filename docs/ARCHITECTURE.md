@@ -150,7 +150,10 @@ rules at execution time; prior analysis is never treated as authorization.
 - There is no arbitrary network-fetch, URL-open, shell, code-execution, payment,
   or external messaging tool.
 - The browser cannot directly submit authoritative auction state.
-- Tool inputs, client messages, and persisted state migrations are validated.
+- Tool inputs and outputs, client messages, persisted Agent state, and model
+  transcript structure are validated with Zod before use.
+- User and assistant transcript text is length-bounded and explicitly framed as
+  untrusted data before it reaches the model.
 - Bid execution is idempotent and requires current-state validation.
 - System instructions explicitly defer numerical authority to the engine.
 - Logs and prompt history must not contain account tokens or credentials.

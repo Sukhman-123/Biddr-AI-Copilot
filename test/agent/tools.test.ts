@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { safeValidateUIMessages } from "ai";
 import {
   createInitialAgentState,
   passAgentCurrentPlayer
@@ -77,6 +78,7 @@ describe("deterministic auction tool handlers", () => {
     ]);
     for (const configuredTool of Object.values(tools)) {
       expect(configuredTool.inputSchema).toBeDefined();
+      expect(configuredTool.outputSchema).toBeDefined();
       expect(configuredTool.execute).toBeTypeOf("function");
     }
     expect(tools.commitSimulatedBid.needsApproval).toBe(true);
@@ -145,6 +147,54 @@ describe("deterministic auction tool handlers", () => {
     const handlers = createAuctionToolHandlers(context);
 
     expect(handlers.analyzeBid()).toEqual(analyzeBid(state));
+  });
+
+  it("validates persisted tool inputs and outputs before model reuse", async () => {
+    const { context } = createContext();
+    const tools = createAuctionTools(context);
+    const analyze = tools.analyzeBid.execute;
+    if (!analyze) throw new Error("Analysis tool must be executable.");
+
+    const output = await analyze({}, { toolCallId: "analysis-1", messages: [] });
+    const valid = await safeValidateUIMessages({
+      messages: [
+        {
+          id: "assistant-analysis",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-analyzeBid",
+              toolCallId: "analysis-1",
+              state: "output-available",
+              input: {},
+              output
+            }
+          ]
+        }
+      ],
+      tools: tools as never
+    });
+    const invalid = await safeValidateUIMessages({
+      messages: [
+        {
+          id: "assistant-corrupt-output",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-analyzeBid",
+              toolCallId: "analysis-2",
+              state: "output-available",
+              input: {},
+              output: { decision: "BID", maximumBidLakh: "corrupt" }
+            }
+          ]
+        }
+      ],
+      tools: tools as never
+    });
+
+    expect(valid.success).toBe(true);
+    expect(invalid.success).toBe(false);
   });
 
   it("mutates state once after an approved tool execution", async () => {

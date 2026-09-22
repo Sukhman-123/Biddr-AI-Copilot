@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { PLAYER_ROLES } from "../domain";
+import {
+  PLAYER_ROLES,
+  assertAuctionState,
+  type PlayerRole
+} from "../domain";
+import type { BiddrAgentState } from "./state";
 
 export const strategyPreferencesSchema = z
   .object({
@@ -14,3 +19,109 @@ export const strategyPreferencesSchema = z
   })
   .strict();
 
+const playerRoleSchema = z.enum(PLAYER_ROLES);
+
+const playerSchema = z
+  .object({
+    id: z.string().min(1).max(128),
+    name: z.string().min(1).max(160),
+    role: playerRoleSchema,
+    style: z.string().min(1).max(300),
+    basePriceLakh: z.number().int().nonnegative(),
+    estimatedValueLakh: z.number().int().nonnegative(),
+    rating: z.number().int().min(0).max(100)
+  })
+  .strict();
+
+const squadMemberSchema = z
+  .object({
+    playerId: z.string().min(1).max(128),
+    name: z.string().min(1).max(160),
+    role: playerRoleSchema,
+    acquisitionPriceLakh: z.number().int().nonnegative(),
+    source: z.enum(["retained", "auction"])
+  })
+  .strict();
+
+const currentBidSchema = z
+  .object({
+    playerId: z.string().min(1).max(128),
+    amountLakh: z.number().int().nonnegative(),
+    bidder: z.string().min(1).max(160)
+  })
+  .strict();
+
+const lotResultSchema = z
+  .object({
+    playerId: z.string().min(1).max(128),
+    outcome: z.enum(["won", "passed", "sold-elsewhere", "unsold"]),
+    amountLakh: z.number().int().nonnegative().nullable(),
+    winner: z.string().min(1).max(160).nullable()
+  })
+  .strict();
+
+const bidRecordSchema = z
+  .object({
+    sequence: z.number().int().positive(),
+    playerId: z.string().min(1).max(128),
+    amountLakh: z.number().int().nonnegative(),
+    bidder: z.string().min(1).max(160)
+  })
+  .strict();
+
+const auctionEventSchema = z
+  .object({
+    sequence: z.number().int().positive(),
+    type: z.enum([
+      "auction-started",
+      "bid-won",
+      "player-passed",
+      "lot-advanced"
+    ]),
+    playerId: z.string().min(1).max(128),
+    description: z.string().min(1).max(500)
+  })
+  .strict();
+
+export const auctionStateSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    auctionId: z.string().min(1).max(128),
+    teamName: z.string().min(1).max(160),
+    status: z.enum(["active", "complete"]),
+    initialPurseLakh: z.number().int().nonnegative(),
+    purseRemainingLakh: z.number().int().nonnegative(),
+    squadLimit: z.number().int().positive().max(100),
+    squad: z.array(squadMemberSchema).max(100),
+    playerQueue: z.array(playerSchema).min(1).max(100),
+    currentLotIndex: z.number().int().nonnegative(),
+    currentBid: currentBidSchema.nullable(),
+    results: z.record(z.string().min(1).max(128), lotResultSchema),
+    bidHistory: z.array(bidRecordSchema).max(500),
+    eventLog: z.array(auctionEventSchema).max(500),
+    strategy: strategyPreferencesSchema
+  })
+  .strict();
+
+export const biddrAgentStateSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    auction: auctionStateSchema,
+    processedActionIds: z.array(z.string().min(1).max(256)).max(50)
+  })
+  .strict()
+  .refine(
+    (state) =>
+      new Set(state.processedActionIds).size === state.processedActionIds.length,
+    { message: "Processed action IDs must not contain duplicates." }
+  );
+
+export function parseBiddrAgentState(value: unknown): BiddrAgentState {
+  const state = biddrAgentStateSchema.parse(value);
+  assertAuctionState(state.auction);
+  return state;
+}
+
+export function isPlayerRole(value: unknown): value is PlayerRole {
+  return playerRoleSchema.safeParse(value).success;
+}

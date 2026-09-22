@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { strategyPreferencesSchema } from "../../src/agent/schemas";
+import {
+  parseBiddrAgentState,
+  strategyPreferencesSchema
+} from "../../src/agent/schemas";
 import {
   advanceAgentCurrentLot,
   createInitialAgentState,
@@ -73,5 +76,23 @@ describe("persistent Agent state transitions", () => {
       })
     ).toThrow();
   });
-});
 
+  it("validates persisted Agent state before it can be used", () => {
+    const valid = createInitialAgentState();
+    expect(parseBiddrAgentState(valid)).toEqual(valid);
+
+    const malformed = structuredClone(valid) as Record<string, unknown>;
+    malformed.injected = true;
+    expect(() => parseBiddrAgentState(malformed)).toThrow();
+
+    const invalidPurse = structuredClone(valid);
+    invalidPurse.auction.purseRemainingLakh = -1;
+    expect(() => parseBiddrAgentState(invalidPurse)).toThrow();
+
+    const duplicateAction = structuredClone(valid);
+    duplicateAction.processedActionIds = ["action-1", "action-1"];
+    expect(() => parseBiddrAgentState(duplicateAction)).toThrow(
+      "must not contain duplicates"
+    );
+  });
+});

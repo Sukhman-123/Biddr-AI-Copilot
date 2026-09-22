@@ -46,6 +46,10 @@ export function createDeterministicFallbackResponse(
   state: AuctionState
 ): Response {
   const message = buildDeterministicFallbackMessage(state);
+  return createTextResponse(message);
+}
+
+export function createTextResponse(message: string): Response {
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
       writeFallbackChunks((chunk) => writer.write(chunk), message);

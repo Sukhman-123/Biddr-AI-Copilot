@@ -603,3 +603,34 @@ The complete `npm run check` gate passed: ESLint, TypeScript, 77 unit tests,
 3 Worker-runtime tests, and both production bundles. All Phase 4 deliverables
 and verification criteria are complete. Work is paused before Phase 5 pending
 user approval.
+
+## Session 20 — Phase 5, pointers 1–3: Validation, budgets, and trust boundaries
+
+### User approval
+
+The user approved implementation of the first three Phase 5 pointers together.
+
+### AI actions
+
+- Added strict Zod schemas for persisted Agent state and every auction-state
+  nested value, rejecting unknown fields and invalid invariants before reads or
+  mutations.
+- Added input and output schemas to every model tool, then validated persisted
+  UI messages before converting them to model messages.
+- Added browser and server-side message budgets: 1,200 characters per user
+  message, bounded assistant text, a 24-message/12,000-character model-context
+  window, and the existing six-step tool ceiling.
+- Preserved approval-tool protocol parts while dropping unsupported client data
+  from model context, so resumed approvals continue to work safely.
+- Framed all model-visible user and assistant transcript text with explicit
+  untrusted-data delimiters, and added matching system-prompt rules that reject
+  instruction overrides inside those delimiters.
+- Added focused regression coverage for malformed state, duplicate action IDs,
+  oversized input, bounded context, prompt injection boundaries, tool output
+  validation, and the composer character limit.
+
+### Phase result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 85 unit tests,
+3 Worker-runtime tests, and both production bundles. Phase 5 pointers 1–3 are
+complete; pointers 4–8 remain intentionally paused pending user approval.

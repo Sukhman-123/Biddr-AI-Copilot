@@ -9,6 +9,7 @@ import type {
   AgentConnectionStatus,
   useBiddrAgent
 } from "../client/use-biddr-agent";
+import { MAX_USER_MESSAGE_CHARACTERS } from "../agent/limits";
 import { ToolActivity } from "./tool-activity";
 
 const STARTER_PROMPTS = [
@@ -49,7 +50,9 @@ export function CopilotChat({
   });
   const busy = status === "submitted" || isStreaming || isRecovering;
   const connected = connectionStatus === "connected";
-  const canSend = connected && !busy && input.trim().length > 0;
+  const inputTooLong = input.length > MAX_USER_MESSAGE_CHARACTERS;
+  const canSend =
+    connected && !busy && !inputTooLong && input.trim().length > 0;
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -58,7 +61,14 @@ export function CopilotChat({
 
   const sendText = (text: string) => {
     const trimmed = text.trim();
-    if (!connected || busy || trimmed.length === 0) return;
+    if (
+      !connected ||
+      busy ||
+      trimmed.length === 0 ||
+      trimmed.length > MAX_USER_MESSAGE_CHARACTERS
+    ) {
+      return;
+    }
 
     void sendMessage({
       role: "user",
@@ -180,6 +190,7 @@ export function CopilotChat({
             id="copilot-message"
             name="message"
             rows={2}
+            maxLength={MAX_USER_MESSAGE_CHARACTERS}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleComposerKeyDown}
@@ -192,7 +203,8 @@ export function CopilotChat({
           </button>
         </div>
         <small id="composer-hint">
-          Enter sends · Shift+Enter adds a new line
+          Enter sends · Shift+Enter adds a new line · {input.length} /
+          {MAX_USER_MESSAGE_CHARACTERS} characters
         </small>
       </form>
     </>

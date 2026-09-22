@@ -15,6 +15,7 @@ import {
   commitAgentBid,
   type BiddrAgentState
 } from "./state";
+import { strategyPreferencesSchema } from "./schemas";
 
 const emptyInputSchema = z.object({}).strict();
 
@@ -28,6 +29,157 @@ export const listRemainingPlayersInputSchema = z
 export const commitSimulatedBidInputSchema = z
   .object({
     amountLakh: z.number().int().positive()
+  })
+  .strict();
+
+const playerSummarySchema = z
+  .object({
+    id: z.string().min(1).max(128),
+    name: z.string().min(1).max(160),
+    role: z.enum(PLAYER_ROLES),
+    style: z.string().min(1).max(300),
+    basePriceLakh: z.number().int().nonnegative(),
+    estimatedValueLakh: z.number().int().nonnegative(),
+    rating: z.number().int().min(0).max(100)
+  })
+  .strict();
+
+const currentBidOutputSchema = z
+  .object({
+    playerId: z.string().min(1).max(128),
+    amountLakh: z.number().int().nonnegative(),
+    bidder: z.string().min(1).max(160)
+  })
+  .strict();
+
+const roleCountsSchema = z
+  .object({
+    batter: z.number().int().nonnegative(),
+    wicketkeeper: z.number().int().nonnegative(),
+    "all-rounder": z.number().int().nonnegative(),
+    "fast-bowler": z.number().int().nonnegative(),
+    "spin-bowler": z.number().int().nonnegative()
+  })
+  .strict();
+
+const getAuctionStateOutputSchema = z
+  .object({
+    auctionId: z.string().min(1).max(128),
+    status: z.enum(["active", "complete"]),
+    teamName: z.string().min(1).max(160),
+    currentLot: z.number().int().positive().nullable(),
+    totalLots: z.number().int().positive(),
+    purseRemainingLakh: z.number().int().nonnegative(),
+    initialPurseLakh: z.number().int().nonnegative(),
+    squadSize: z.number().int().nonnegative(),
+    squadLimit: z.number().int().positive(),
+    currentPlayerId: z.string().min(1).max(128).nullable(),
+    currentBid: currentBidOutputSchema.nullable(),
+    completedLots: z.number().int().nonnegative(),
+    recentBids: z
+      .array(
+        z
+          .object({
+            sequence: z.number().int().positive(),
+            playerId: z.string().min(1).max(128),
+            amountLakh: z.number().int().nonnegative(),
+            bidder: z.string().min(1).max(160)
+          })
+          .strict()
+      )
+      .max(5)
+  })
+  .strict();
+
+const getCurrentPlayerOutputSchema = z.union([
+  z
+    .object({
+      status: z.enum(["active", "complete"]),
+      player: z.null(),
+      nextBidLakh: z.null()
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("active"),
+      player: playerSummarySchema,
+      currentBid: currentBidOutputSchema.nullable(),
+      nextBidLakh: z.number().int().positive()
+    })
+    .strict()
+]);
+
+const getTeamCompositionOutputSchema = z
+  .object({
+    teamName: z.string().min(1).max(160),
+    purseRemainingLakh: z.number().int().nonnegative(),
+    totalPlayers: z.number().int().nonnegative(),
+    openSlots: z.number().int().nonnegative(),
+    counts: roleCountsSchema,
+    gaps: roleCountsSchema,
+    squad: z
+      .array(
+        z
+          .object({
+            playerId: z.string().min(1).max(128),
+            name: z.string().min(1).max(160),
+            role: z.enum(PLAYER_ROLES),
+            acquisitionPriceLakh: z.number().int().nonnegative(),
+            source: z.enum(["retained", "auction"])
+          })
+          .strict()
+      )
+      .max(100)
+  })
+  .strict();
+
+const listRemainingPlayersOutputSchema = z
+  .object({
+    role: z.union([z.enum(PLAYER_ROLES), z.literal("all")]),
+    totalAvailable: z.number().int().nonnegative(),
+    returned: z.number().int().nonnegative().max(12),
+    players: z.array(playerSummarySchema).max(12)
+  })
+  .strict();
+
+const analyzeBidOutputSchema = z
+  .object({
+    playerId: z.string().min(1).max(128),
+    decision: z.enum(["BID", "CAUTION", "PASS"]),
+    maximumBidLakh: z.number().int().nonnegative(),
+    nextBidLakh: z.number().int().positive(),
+    headroomLakh: z.number().int(),
+    factors: z
+      .object({
+        playerValueLakh: z.number().int().nonnegative(),
+        nextBidLakh: z.number().int().positive(),
+        roleTarget: z.number().int().nonnegative(),
+        roleGap: z.number().int().nonnegative(),
+        remainingRoleSupply: z.number().int().nonnegative(),
+        scarcityScore: z.number().finite(),
+        needMultiplier: z.number().finite(),
+        priorityMultiplier: z.number().finite(),
+        riskMultiplier: z.number().finite(),
+        reserveFloorLakh: z.number().int().nonnegative(),
+        spendableAboveReserveLakh: z.number().int().nonnegative(),
+        openSquadSlots: z.number().int().nonnegative(),
+        slotBudgetCapLakh: z.number().int().nonnegative(),
+        rawCeilingLakh: z.number().int().nonnegative()
+      })
+      .strict(),
+    reasons: z.array(z.string().min(1).max(300)).min(1).max(8)
+  })
+  .strict();
+
+const commitSimulatedBidOutputSchema = z
+  .object({
+    actionId: z.string().min(1).max(256),
+    duplicate: z.boolean(),
+    playerId: z.string().min(1).max(128),
+    playerName: z.string().min(1).max(160),
+    amountLakh: z.number().int().positive(),
+    purseRemainingLakh: z.number().int().nonnegative(),
+    squadSize: z.number().int().nonnegative()
   })
   .strict();
 
@@ -163,42 +315,49 @@ export function createAuctionTools(context: AuctionToolContext) {
       description:
         "Read the current auction summary, purse, active lot, current bid, and recent bid history. Use this instead of guessing auction numbers.",
       inputSchema: emptyInputSchema,
+      outputSchema: getAuctionStateOutputSchema,
       execute: handlers.getAuctionState
     }),
     getCurrentPlayer: tool({
       description:
         "Read the active fictional player's role, style, valuation, current bid, and next valid bid.",
       inputSchema: emptyInputSchema,
+      outputSchema: getCurrentPlayerOutputSchema,
       execute: handlers.getCurrentPlayer
     }),
     getTeamComposition: tool({
       description:
         "Read the user's current fictional squad, role counts, open slots, role gaps, and remaining purse.",
       inputSchema: emptyInputSchema,
+      outputSchema: getTeamCompositionOutputSchema,
       execute: handlers.getTeamComposition
     }),
     listRemainingPlayers: tool({
       description:
         "List unresolved fictional auction players, optionally filtered by role. Use this to compare future supply and scarcity.",
       inputSchema: listRemainingPlayersInputSchema,
+      outputSchema: listRemainingPlayersOutputSchema,
       execute: handlers.listRemainingPlayers
     }),
     analyzeBid: tool({
       description:
         "Run Biddr's deterministic valuation engine for the active player. Returns BID, CAUTION, or PASS, a maximum bid, transparent numerical factors, and reasons.",
       inputSchema: emptyInputSchema,
+      outputSchema: analyzeBidOutputSchema,
       execute: handlers.analyzeBid
     }),
     getStrategy: tool({
       description:
         "Read the remembered reserve percentage, risk tolerance, and priority roles that influence recommendations.",
       inputSchema: emptyInputSchema,
+      outputSchema: strategyPreferencesSchema,
       execute: handlers.getStrategy
     }),
     commitSimulatedBid: tool({
       description:
         "Commit an exact simulated bid only after analyzing the active player. This spends purse and adds the player, so it always requires explicit user approval.",
       inputSchema: commitSimulatedBidInputSchema,
+      outputSchema: commitSimulatedBidOutputSchema,
       needsApproval: true,
       execute: (input, options) =>
         handlers.commitSimulatedBid({

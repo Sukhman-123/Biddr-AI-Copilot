@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CopilotChat } from "../../src/components/copilot-chat";
+import { MAX_USER_MESSAGE_CHARACTERS } from "../../src/agent/limits";
 
 const chatHook = vi.hoisted(() => ({
   addToolApprovalResponse: vi.fn(),
@@ -81,6 +82,10 @@ describe("Copilot chat", () => {
       parts: [{ type: "text", text: "How is our purse?" }]
     });
     expect(composer).toHaveValue("");
+    expect(composer).toHaveAttribute(
+      "maxlength",
+      String(MAX_USER_MESSAGE_CHARACTERS)
+    );
   });
 
   it("supports Enter to send and Shift+Enter for a new line", async () => {

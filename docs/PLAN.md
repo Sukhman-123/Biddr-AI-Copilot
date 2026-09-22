@@ -142,9 +142,9 @@ and documented rather than silently bypassed.
 
 ### Deliverables
 
-- [ ] Zod validation at every untrusted boundary.
-- [ ] Message length and tool-step limits.
-- [ ] Prompt separates instructions from untrusted auction content.
+- [x] Zod validation at every untrusted boundary.
+- [x] Message length and tool-step limits.
+- [x] Prompt separates instructions from untrusted auction content.
 - [ ] No arbitrary URL, generic fetch, code execution, or external-write tool.
 - [ ] Defensive state invariants and idempotent approval handling.
 - [ ] Friendly network, model, quota, and reconnect errors.

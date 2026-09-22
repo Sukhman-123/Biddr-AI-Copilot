@@ -5,6 +5,7 @@ import {
 import {
   convertToModelMessages,
   pruneMessages,
+  safeValidateUIMessages,
   stepCountIs,
   streamText
 } from "ai";
@@ -12,8 +13,12 @@ import { callable, routeAgentRequest } from "agents";
 import { createWorkersAI } from "workers-ai-provider";
 import {
   createDeterministicFallbackResponse,
-  createFallbackAwareResponse
+  createFallbackAwareResponse,
+  createTextResponse
 } from "./agent/fallback";
+import {
+  frameValidatedChatContext
+} from "./agent/chat-context";
 import {
   CHAT_RECOVERY_CONFIG,
   CHAT_STREAM_STALL_TIMEOUT_MS,
@@ -21,12 +26,15 @@ import {
 } from "./agent/chat-config";
 import {
   MAX_MODEL_CONTEXT_MESSAGES,
+  selectBoundedChatContext,
   MAX_OUTPUT_TOKENS,
   MAX_TOOL_STEPS,
-  selectRecentChatMessages
 } from "./agent/limits";
 import { BIDDR_MODEL_ID, BIDDR_SYSTEM_PROMPT } from "./agent/model";
-import { strategyPreferencesSchema } from "./agent/schemas";
+import {
+  parseBiddrAgentState,
+  strategyPreferencesSchema
+} from "./agent/schemas";
 import {
   advanceAgentCurrentLot,
   createInitialAgentState,
@@ -49,37 +57,53 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
   chatRecovery = CHAT_RECOVERY_CONFIG;
   chatStreamStallTimeoutMs = CHAT_STREAM_STALL_TIMEOUT_MS;
 
+  private getValidatedState(): BiddrAgentState {
+    return parseBiddrAgentState(this.state);
+  }
+
+  private setValidatedState(state: BiddrAgentState): void {
+    this.setState(parseBiddrAgentState(state));
+  }
+
+  private getFallbackAuction() {
+    try {
+      return this.getValidatedState().auction;
+    } catch {
+      return createInitialAgentState().auction;
+    }
+  }
+
   @callable()
   getSnapshot(): BiddrAgentState {
-    return this.state;
+    return this.getValidatedState();
   }
 
   @callable()
   rememberStrategy(input: StrategyPreferences): BiddrAgentState {
     const strategy = strategyPreferencesSchema.parse(input);
-    const nextState = rememberAgentStrategy(this.state, strategy);
-    this.setState(nextState);
+    const nextState = rememberAgentStrategy(this.getValidatedState(), strategy);
+    this.setValidatedState(nextState);
     return nextState;
   }
 
   @callable()
   passPlayer(): BiddrAgentState {
-    const nextState = passAgentCurrentPlayer(this.state);
-    this.setState(nextState);
+    const nextState = passAgentCurrentPlayer(this.getValidatedState());
+    this.setValidatedState(nextState);
     return nextState;
   }
 
   @callable()
   advanceLot(): BiddrAgentState {
-    const nextState = advanceAgentCurrentLot(this.state);
-    this.setState(nextState);
+    const nextState = advanceAgentCurrentLot(this.getValidatedState());
+    this.setValidatedState(nextState);
     return nextState;
   }
 
   @callable()
   resetDemo(): BiddrAgentState {
     const nextState = resetAgentState();
-    this.setState(nextState);
+    this.setValidatedState(nextState);
     return nextState;
   }
 
@@ -88,13 +112,44 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
     options?: OnChatMessageOptions
   ) {
     try {
+      void this.getValidatedState();
+      const tools = createAuctionTools({
+        getAgentState: () => this.getValidatedState(),
+        setAgentState: (nextState) => this.setValidatedState(nextState)
+      });
+      const validatedMessages = await safeValidateUIMessages({
+        messages: this.messages,
+        // The Agent SDK supplies untyped persisted UI messages. Runtime tool
+        // schemas still validate every matching static tool part here.
+        tools: tools as never
+      });
+      if (!validatedMessages.success) {
+        return createTextResponse(
+          "Biddr could not safely read that conversation message. Please send your question again."
+        );
+      }
+
+      const chatContext = frameValidatedChatContext(validatedMessages.data);
+      if (chatContext.rejectedLatestUserMessage) {
+        return createTextResponse(
+          "Please keep a single chat message under 1,200 characters and send it again."
+        );
+      }
+
       const workersai = createWorkersAI({ binding: this.env.AI });
-      const recentMessages = selectRecentChatMessages(
-        this.messages,
+      const recentMessages = selectBoundedChatContext(
+        chatContext.messages.map((message) => ({
+          message,
+          role: message.role,
+          text: message.parts
+            .filter((part) => part.type === "text")
+            .map((part) => part.text)
+            .join("\n")
+        })),
         MAX_MODEL_CONTEXT_MESSAGES
-      );
+      ).map(({ message }) => message);
       const modelMessages = pruneMessages({
-        messages: await convertToModelMessages(recentMessages),
+        messages: await convertToModelMessages(recentMessages, { tools }),
         reasoning: "before-last-message",
         toolCalls: "before-last-2-messages"
       });
@@ -104,10 +159,7 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
         }),
         system: BIDDR_SYSTEM_PROMPT,
         messages: modelMessages,
-        tools: createAuctionTools({
-          getAgentState: () => this.state,
-          setAgentState: (state) => this.setState(state)
-        }),
+        tools,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         stopWhen: stepCountIs(MAX_TOOL_STEPS),
         ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
@@ -118,10 +170,10 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
 
       return createFallbackAwareResponse(
         modelStream,
-        () => this.state.auction
+        () => this.getFallbackAuction()
       );
     } catch {
-      return createDeterministicFallbackResponse(this.state.auction);
+      return createDeterministicFallbackResponse(this.getFallbackAuction());
     }
   }
 }
