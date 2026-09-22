@@ -691,3 +691,29 @@ The complete `npm run check` gate passed: ESLint, TypeScript, 86 unit tests,
 4 Worker-runtime tests, and both production bundles. All Phase 5 deliverables
 and verification criteria are complete. Work is paused before Phase 6 pending
 user approval.
+
+## Session 23 — Production streaming compatibility patch
+
+### User report and approval
+
+After the first public deployment, the user reported that every streamed Llama
+response duplicated each token (for example, `GivenGiven the the`). The user
+then explicitly requested a fix.
+
+### AI actions
+
+- Traced the issue to the installed `workers-ai-provider@3.3.1` adapter, whose
+  stream mapper emitted both Workers AI's native `response` text and the
+  identical OpenAI-compatible `choices[0].delta.content` text from a single
+  Llama 3.3 stream event.
+- Added a repository-owned `patch-package` patch that prefers the native field
+  when both fields exist, while retaining OpenAI-compatible-only stream support.
+- Added a regression test with dual-format SSE chunks and verified it produces
+  one clean response rather than duplicated text.
+- Added a `postinstall` hook and performed a clean `npm ci` installation to
+  prove the patch reapplies automatically for reviewers and later deployments.
+
+### Result
+
+The installed adapter patch is reproducible from the lockfile and repository.
+The public Worker must be redeployed after the full verification gate passes.
