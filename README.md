@@ -6,8 +6,9 @@ auction, ask the copilot for advice grounded in the live auction state, save
 strategy preferences, and approve or reject simulated bids proposed by the
 agent.
 
-> Project status: Phases 0–2 complete. The documented foundation and tested
-> deterministic auction engine are ready for Stateful Agent integration.
+> Project status: The MVP is complete and deployed. Changes pushed to `main`
+> are verified and then deployed automatically through GitHub Actions once the
+> repository deployment secrets have been configured.
 
 ## Assignment coverage
 
@@ -117,6 +118,23 @@ npm run check
 Individual commands are available as `npm run lint`, `npm run typecheck`,
 `npm run test:run`, and `npm run build`. Regenerate binding and runtime types
 after changing `wrangler.jsonc` with `npm run cf-typegen`.
+
+## Continuous deployment
+
+The [Verify and deploy](.github/workflows/deploy.yml) workflow runs for each
+push to `main` (and can also be started manually from the GitHub Actions tab).
+It runs `npm run check` first; only a passing build is deployed to Cloudflare.
+Pushes to other branches and pull requests do not deploy production.
+
+Before the first automated deployment, add these encrypted repository secrets
+in **GitHub → Settings → Secrets and variables → Actions**:
+
+- `CLOUDFLARE_API_TOKEN`: a scoped Cloudflare API token created from the
+  **Edit Cloudflare Workers** template, limited to the project account.
+- `CLOUDFLARE_ACCOUNT_ID`: the account ID shown by `wrangler whoami`.
+
+Never commit the token or place it in `.env` files. After the secrets are set,
+push a commit to `main` and follow the workflow in the GitHub **Actions** tab.
 
 ## Data and limitations
 

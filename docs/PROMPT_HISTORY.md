@@ -734,3 +734,23 @@ can become too long.
 - Kept auction state, strategy, and the browser's session identity untouched;
   only the current session's persisted conversation is removed.
 - Added component coverage for confirmation and stream-time locking.
+
+## Session 25 — Verified continuous deployment
+
+### User request
+
+The user asked for deployments to happen automatically whenever changes are
+pushed, instead of manually running the deployment command.
+
+### AI actions
+
+- Added a GitHub Actions workflow that runs on pushes to `main` and on manual
+  dispatch.
+- Made deployment conditional on the complete local-equivalent quality gate:
+  linting, type checks, tests, and production build must all pass first.
+- Configured the deploy job to build the Worker and client assets, then deploy
+  the existing Cloudflare project through the official Wrangler GitHub Action.
+- Kept credentials out of version control. The workflow reads an encrypted
+  Cloudflare API token and account ID from GitHub repository secrets.
+- Documented the one-time secret configuration and workflow behavior in the
+  README.
