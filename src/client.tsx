@@ -10,10 +10,10 @@ if (!rootElement) {
   throw new Error("Root element was not found");
 }
 
-getOrCreateDemoSessionId();
+const demoSessionId = getOrCreateDemoSessionId();
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <App sessionId={demoSessionId} />
   </StrictMode>
 );

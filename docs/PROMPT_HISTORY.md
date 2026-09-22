@@ -420,3 +420,30 @@ The complete `npm run check` gate passed: ESLint, TypeScript, 51 unit tests,
 3 Worker-runtime tests, and both production bundles. Phase 4 pointer 1 is
 complete. Live Agent connection and reconnect behavior remain paused pending
 user approval.
+
+## Session 14 — Phase 4, pointer 2: Live Agent connection
+
+### User approval
+
+The user approved the next Phase 4 pointer after committing the browser-session
+identity work.
+
+### AI actions
+
+- Connected `useAgent` to `BiddrCopilotAgent` using the stable per-browser UUID
+  as the Durable Object instance name.
+- Preserved the SDK's automatic reconnect and server-state resynchronization.
+- Added explicit connecting, connected, reconnecting, and terminal-unavailable
+  presentation states.
+- Distinguished retryable closes from terminal close codes using the SDK's
+  classifier.
+- Added a manual retry action for terminal failures.
+- Added hook and component tests for Agent addressing, reconnect transitions,
+  terminal failures, and manual retry behavior.
+
+### Pointer result
+
+The complete `npm run check` gate passed: ESLint, TypeScript, 55 unit tests,
+3 Worker-runtime tests, and both production bundles. Phase 4 pointer 2 is
+complete. The auction dashboard and current-player presentation remain paused
+pending user approval.

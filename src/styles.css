@@ -440,6 +440,49 @@ h1 {
   white-space: nowrap;
 }
 
+.connection-controls,
+.connection-state {
+  display: inline-flex;
+  align-items: center;
+}
+
+.connection-controls {
+  gap: 8px;
+}
+
+.connection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--orange);
+  box-shadow: 0 0 0 4px rgb(255 156 101 / 10%);
+}
+
+.connection-state[data-status="connected"] .connection-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgb(223 255 88 / 10%);
+}
+
+.connection-state[data-status="unavailable"] .connection-dot {
+  background: #ff6b6b;
+  box-shadow: 0 0 0 4px rgb(255 107 107 / 10%);
+}
+
+.connection-retry {
+  padding: 6px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.connection-retry:hover {
+  border-color: var(--accent-dark);
+}
+
 .chat-preview {
   display: flex;
   flex: 1;
@@ -605,7 +648,7 @@ h1 {
     grid-column: 2 / -1;
   }
 
-  .connection-state {
+  .connection-controls {
     display: none;
   }
 }

@@ -6,6 +6,10 @@ import {
   UsersThreeIcon,
   WalletIcon
 } from "@phosphor-icons/react";
+import {
+  useBiddrAgent,
+  type AgentConnectionStatus
+} from "./client/use-biddr-agent";
 
 const squadRoles = [
   { role: "Batters", current: 3, target: 5 },
@@ -14,7 +18,20 @@ const squadRoles = [
   { role: "Bowlers", current: 2, target: 5 }
 ];
 
-function App() {
+const connectionLabels: Record<AgentConnectionStatus, string> = {
+  connecting: "Connecting to Agent",
+  connected: "Agent connected",
+  reconnecting: "Reconnecting to Agent",
+  unavailable: "Agent unavailable"
+};
+
+type AppProps = {
+  sessionId: string;
+};
+
+function App({ sessionId }: AppProps) {
+  const { connectionStatus, reconnect } = useBiddrAgent(sessionId);
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -152,7 +169,26 @@ function App() {
                 <p>Grounded auction guidance</p>
               </div>
             </div>
-            <span className="connection-state">Foundation ready</span>
+            <div className="connection-controls">
+              <span
+                className="connection-state"
+                data-status={connectionStatus}
+                role="status"
+                aria-live="polite"
+              >
+                <span className="connection-dot" aria-hidden="true" />
+                {connectionLabels[connectionStatus]}
+              </span>
+              {connectionStatus === "unavailable" ? (
+                <button
+                  className="connection-retry"
+                  type="button"
+                  onClick={reconnect}
+                >
+                  Retry
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="chat-preview">
@@ -196,4 +232,3 @@ function App() {
 }
 
 export default App;
-

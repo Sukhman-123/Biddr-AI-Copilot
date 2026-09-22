@@ -122,7 +122,7 @@ and documented rather than silently bypassed.
 ### Deliverables
 
 - [x] Stable per-browser demo-session identifier.
-- [ ] Live Agent connection and reconnect behavior.
+- [x] Live Agent connection and reconnect behavior.
 - [ ] Auction dashboard and current-player presentation.
 - [ ] Streaming chat, suggested prompts, and accessible composer.
 - [ ] Tool activity and structured recommendation cards.
