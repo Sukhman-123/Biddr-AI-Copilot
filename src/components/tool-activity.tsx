@@ -1,3 +1,4 @@
+import { CaretDownIcon } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import {
   getToolName,
@@ -11,7 +12,7 @@ import {
   parseSimulatedBidInput
 } from "../client/tool-presentation";
 
-type AnyToolPart = ToolUIPart | DynamicToolUIPart;
+export type AnyToolPart = ToolUIPart | DynamicToolUIPart;
 
 const TOOL_LABELS: Record<string, string> = {
   getAuctionState: "Reading auction state",
@@ -44,6 +45,49 @@ function getActivityState(part: AnyToolPart): {
     case "output-denied":
       return { label: "Declined", tone: "warning" };
   }
+}
+
+export function ToolActivityGroup({ parts }: { parts: AnyToolPart[] }) {
+  if (parts.length === 0) return null;
+
+  const activities = parts.map((part) => {
+    const activity = getActivityState(part);
+
+    return {
+      id: part.toolCallId,
+      toolLabel: TOOL_LABELS[getToolName(part)] ?? "Using an auction tool",
+      statusLabel: activity.label,
+      tone: activity.tone
+    };
+  });
+  const working = activities.some((activity) => activity.tone === "active");
+  const summary = working ? "Checking auction context" : "Auction context checked";
+
+  return (
+    <details className="tool-activity-group" data-tone={working ? "active" : "success"}>
+      <summary>
+        <span className="tool-activity-dot" aria-hidden="true" />
+        <strong>{summary}</strong>
+        <span>
+          {activities.length} {activities.length === 1 ? "check" : "checks"}
+        </span>
+        <CaretDownIcon size={13} aria-hidden="true" />
+      </summary>
+      <ul>
+        {activities.map((activity) => (
+          <li
+            key={activity.id}
+            data-tone={activity.tone}
+            aria-label={`${activity.toolLabel}: ${activity.statusLabel}`}
+          >
+            <span className="tool-activity-detail-dot" aria-hidden="true" />
+            <span>{activity.toolLabel}</span>
+            <strong>{activity.statusLabel}</strong>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
 }
 
 function RecommendationCard({ output }: { output: unknown }) {

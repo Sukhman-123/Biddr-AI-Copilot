@@ -259,7 +259,8 @@ describe("Copilot chat", () => {
     expect(chatHook.sendMessage).not.toHaveBeenCalled();
   });
 
-  it("renders tool progress and a validated bid recommendation card", () => {
+  it("collapses routine tool progress and keeps recommendations visible", async () => {
+    const user = userEvent.setup();
     mockChat({
       messages: [
         {
@@ -285,6 +286,9 @@ describe("Copilot chat", () => {
     });
     render(<CopilotChat agent={agent} connectionStatus="connected" />);
 
+    const activitySummary = screen.getByText("Checking auction context");
+    expect(activitySummary.closest("details")).not.toHaveAttribute("open");
+    await user.click(activitySummary);
     expect(
       screen.getByLabelText("Reading auction state: Working")
     ).toBeVisible();

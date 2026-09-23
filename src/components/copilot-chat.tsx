@@ -16,8 +16,12 @@ import type {
   AgentConnectionStatus,
   useBiddrAgent
 } from "../client/use-biddr-agent";
+import { isProminentToolActivity } from "../client/tool-activity-presentation";
 import { MAX_USER_MESSAGE_CHARACTERS } from "../agent/limits";
-import { ToolActivity } from "./tool-activity";
+import {
+  ToolActivity,
+  ToolActivityGroup
+} from "./tool-activity";
 
 const STARTER_PROMPTS = [
   { label: "Analyze this player", Icon: CrosshairIcon },
@@ -207,7 +211,13 @@ export function CopilotChat({
           </div>
         ) : (
           <ol className="chat-messages">
-            {visibleMessages.map((message, messageIndex) => (
+            {visibleMessages.map((message, messageIndex) => {
+              const routineToolParts = message.parts
+                .filter(isToolUIPart)
+                .filter((part) => !isProminentToolActivity(part));
+              let renderedRoutineTools = false;
+
+              return (
               <li className={`chat-message chat-message-${message.role}`} key={message.id}>
                 <div className="chat-message-identity">
                   {message.role === "assistant" ? (
@@ -230,6 +240,18 @@ export function CopilotChat({
                     }
 
                     if (isToolUIPart(part)) {
+                      if (!isProminentToolActivity(part)) {
+                        if (renderedRoutineTools) return null;
+                        renderedRoutineTools = true;
+
+                        return (
+                          <ToolActivityGroup
+                            parts={routineToolParts}
+                            key="routine-tool-activity"
+                          />
+                        );
+                      }
+
                       return (
                         <ToolActivity
                           part={part}
@@ -253,7 +275,8 @@ export function CopilotChat({
                   ) : null}
                 </div>
               </li>
-            ))}
+              );
+            })}
             {busy && lastVisibleMessage?.role !== "assistant" ? (
               <li className="chat-message chat-message-assistant chat-message-pending">
                 <div className="chat-message-identity">
