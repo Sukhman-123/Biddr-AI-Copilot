@@ -5,6 +5,7 @@ import {
   CrosshairIcon,
   CurrencyInrIcon,
   ShieldCheckIcon,
+  SquareIcon,
   SparkleIcon,
   UsersThreeIcon
 } from "@phosphor-icons/react";
@@ -38,6 +39,31 @@ function hasVisiblePart(message: UIMessage): boolean {
   );
 }
 
+function ResponseProgress({
+  label,
+  stopDisabled,
+  onStop
+}: {
+  label: string;
+  stopDisabled: boolean;
+  onStop: () => void;
+}) {
+  return (
+    <div className="chat-response-progress" aria-label={`Biddr is ${label.toLowerCase()}`}>
+      <span className="chat-typing-dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+      <span>{label}</span>
+      <button type="button" onClick={onStop} disabled={stopDisabled}>
+        <SquareIcon size={9} weight="fill" aria-hidden="true" />
+        Stop
+      </button>
+    </div>
+  );
+}
+
 export function CopilotChat({
   agent,
   connectionStatus
@@ -54,6 +80,7 @@ export function CopilotChat({
     clearHistory,
     messages,
     sendMessage,
+    stop,
     status,
     isStreaming,
     isRecovering
@@ -133,6 +160,12 @@ export function CopilotChat({
             : "Ready";
   const composerState = !connected ? "offline" : busy ? "busy" : "ready";
   const showCharacterCounter = input.length >= CHARACTER_COUNTER_THRESHOLD;
+  const responseProgressLabel = isRecovering
+    ? "Recovering"
+    : isStreaming
+      ? "Responding"
+      : "Thinking";
+  const lastVisibleMessage = visibleMessages.at(-1);
 
   const clearChat = () => {
     if (!canClearHistory) return;
@@ -149,7 +182,7 @@ export function CopilotChat({
         aria-live="polite"
         aria-relevant="additions text"
       >
-        {visibleMessages.length === 0 ? (
+        {visibleMessages.length === 0 && !busy ? (
           <div className="empty-chat">
             <span className="empty-chat-icon" aria-hidden="true">
               <ChatCircleDotsIcon size={25} weight="duotone" />
@@ -174,7 +207,7 @@ export function CopilotChat({
           </div>
         ) : (
           <ol className="chat-messages">
-            {visibleMessages.map((message) => (
+            {visibleMessages.map((message, messageIndex) => (
               <li className={`chat-message chat-message-${message.role}`} key={message.id}>
                 <div className="chat-message-identity">
                   {message.role === "assistant" ? (
@@ -209,9 +242,35 @@ export function CopilotChat({
 
                     return null;
                   })}
+                  {busy &&
+                  message.role === "assistant" &&
+                  messageIndex === visibleMessages.length - 1 ? (
+                    <ResponseProgress
+                      label={responseProgressLabel}
+                      stopDisabled={!connected}
+                      onStop={() => void stop()}
+                    />
+                  ) : null}
                 </div>
               </li>
             ))}
+            {busy && lastVisibleMessage?.role !== "assistant" ? (
+              <li className="chat-message chat-message-assistant chat-message-pending">
+                <div className="chat-message-identity">
+                  <span className="chat-message-avatar" aria-hidden="true">
+                    <SparkleIcon size={12} weight="fill" />
+                  </span>
+                  <span className="chat-message-author">Biddr</span>
+                </div>
+                <div className="chat-message-parts">
+                  <ResponseProgress
+                    label={responseProgressLabel}
+                    stopDisabled={!connected}
+                    onStop={() => void stop()}
+                  />
+                </div>
+              </li>
+            ) : null}
           </ol>
         )}
 

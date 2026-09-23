@@ -8,6 +8,7 @@ const chatHook = vi.hoisted(() => ({
   addToolApprovalResponse: vi.fn(),
   clearHistory: vi.fn(),
   sendMessage: vi.fn(),
+  stop: vi.fn(),
   useAgentChat: vi.fn()
 }));
 
@@ -51,6 +52,7 @@ function mockChat(overrides: Record<string, unknown> = {}) {
     addToolApprovalResponse: chatHook.addToolApprovalResponse,
     clearHistory: chatHook.clearHistory,
     sendMessage: chatHook.sendMessage,
+    stop: chatHook.stop,
     status: "idle",
     isStreaming: false,
     isRecovering: false,
@@ -63,6 +65,7 @@ describe("Copilot chat", () => {
     chatHook.addToolApprovalResponse.mockReset();
     chatHook.clearHistory.mockReset();
     chatHook.sendMessage.mockReset();
+    chatHook.stop.mockReset();
     chatHook.useAgentChat.mockReset();
     mockChat();
   });
@@ -215,7 +218,27 @@ describe("Copilot chat", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Biddr is responding"
     );
+    expect(screen.getByLabelText("Biddr is responding")).toBeVisible();
     expect(screen.getByRole("textbox")).toBeDisabled();
+  });
+
+  it("shows an inline pending turn and can stop generation", async () => {
+    const user = userEvent.setup();
+    mockChat({
+      messages: [
+        {
+          id: "user-pending",
+          role: "user",
+          parts: [{ type: "text", text: "Analyze this player" }]
+        }
+      ],
+      status: "submitted"
+    });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+
+    expect(screen.getByLabelText("Biddr is thinking")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Stop" }));
+    expect(chatHook.stop).toHaveBeenCalledOnce();
   });
 
   it("disables submission while disconnected and reports chat errors", async () => {
