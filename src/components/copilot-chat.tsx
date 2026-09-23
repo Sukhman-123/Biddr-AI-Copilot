@@ -1,6 +1,7 @@
 import {
   ChatCircleDotsIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  SparkleIcon
 } from "@phosphor-icons/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
@@ -135,9 +136,16 @@ export function CopilotChat({
           <ol className="chat-messages">
             {visibleMessages.map((message) => (
               <li className={`chat-message chat-message-${message.role}`} key={message.id}>
-                <span className="chat-message-author">
-                  {message.role === "user" ? "You" : "Biddr"}
-                </span>
+                <div className="chat-message-identity">
+                  {message.role === "assistant" ? (
+                    <span className="chat-message-avatar" aria-hidden="true">
+                      <SparkleIcon size={12} weight="fill" />
+                    </span>
+                  ) : null}
+                  <span className="chat-message-author">
+                    {message.role === "user" ? "You" : "Biddr"}
+                  </span>
+                </div>
                 <div className="chat-message-parts">
                   {message.parts.map((part, index) => {
                     if (part.type === "text" && part.text.length > 0) {
