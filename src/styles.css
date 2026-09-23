@@ -636,10 +636,15 @@ h1 {
 }
 
 .copilot-column {
-  position: relative;
+  position: sticky;
+  top: 76px;
+  align-self: start;
   display: flex;
   flex-direction: column;
+  height: calc(100vh - 76px);
+  height: calc(100dvh - 76px);
   min-height: calc(100vh - 76px);
+  overflow: hidden;
 }
 
 .copilot-header {
@@ -733,7 +738,9 @@ h1 {
   gap: 28px;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 44px 0;
+  scrollbar-gutter: stable;
   scrollbar-color: var(--line-strong) transparent;
 }
 
