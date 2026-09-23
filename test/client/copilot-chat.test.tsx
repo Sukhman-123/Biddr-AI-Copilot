@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CopilotChat } from "../../src/components/copilot-chat";
@@ -93,6 +93,25 @@ describe("Copilot chat", () => {
       "maxlength",
       String(MAX_USER_MESSAGE_CHARACTERS)
     );
+    expect(composer).toHaveAttribute("rows", "1");
+  });
+
+  it("reveals the character counter only when the message nears the limit", () => {
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+    const composer = screen.getByRole("textbox", { name: "Ask the copilot" });
+
+    expect(
+      screen.queryByText(`0 / ${MAX_USER_MESSAGE_CHARACTERS}`)
+    ).not.toBeInTheDocument();
+
+    const nearLimit = "a".repeat(
+      Math.floor(MAX_USER_MESSAGE_CHARACTERS * 0.8)
+    );
+    fireEvent.change(composer, { target: { value: nearLimit } });
+
+    expect(
+      screen.getByText(`${nearLimit.length} / ${MAX_USER_MESSAGE_CHARACTERS}`)
+    ).toBeVisible();
   });
 
   it("supports Enter to send and Shift+Enter for a new line", async () => {

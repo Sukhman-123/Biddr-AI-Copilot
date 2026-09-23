@@ -1,4 +1,5 @@
 import {
+  ArrowUpIcon,
   ChatCircleDotsIcon,
   ShieldCheckIcon,
   SparkleIcon
@@ -19,6 +20,10 @@ const STARTER_PROMPTS = [
   "Explain our purse and reserve strategy."
 ] as const;
 
+const CHARACTER_COUNTER_THRESHOLD = Math.floor(
+  MAX_USER_MESSAGE_CHARACTERS * 0.8
+);
+
 type BiddrAgentConnection = ReturnType<typeof useBiddrAgent>["agent"];
 
 function hasVisiblePart(message: UIMessage): boolean {
@@ -38,6 +43,7 @@ export function CopilotChat({
   const [input, setInput] = useState("");
   const [confirmingClear, setConfirmingClear] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const {
     addToolApprovalResponse,
     clearHistory,
@@ -62,6 +68,17 @@ export function CopilotChat({
     const transcript = transcriptRef.current;
     if (transcript) transcript.scrollTop = transcript.scrollHeight;
   }, [messages, isStreaming]);
+
+  useEffect(() => {
+    const composer = composerRef.current;
+    if (!composer) return;
+
+    composer.style.height = "auto";
+    composer.style.height = `${Math.min(
+      Math.max(composer.scrollHeight, 46),
+      146
+    )}px`;
+  }, [input]);
 
   const sendText = (text: string) => {
     const trimmed = text.trim();
@@ -94,6 +111,23 @@ export function CopilotChat({
   };
 
   const visibleMessages = messages.filter(hasVisiblePart);
+  const composerStatus = !connected
+    ? connectionStatus === "unavailable"
+      ? "Agent offline"
+      : connectionStatus === "reconnecting"
+        ? "Reconnecting…"
+        : "Connecting…"
+    : isRecovering
+      ? "Recovering response…"
+      : isStreaming
+        ? "Biddr is responding…"
+        : status === "submitted"
+          ? "Biddr is thinking…"
+          : status === "error"
+            ? "Ready to try again"
+            : "Ready";
+  const composerState = !connected ? "offline" : busy ? "busy" : "ready";
+  const showCharacterCounter = input.length >= CHARACTER_COUNTER_THRESHOLD;
 
   const clearChat = () => {
     if (!canClearHistory) return;
@@ -182,16 +216,6 @@ export function CopilotChat({
           </p>
         ) : null}
 
-        {busy ? (
-          <p className="chat-progress" role="status">
-            {isRecovering
-              ? "Recovering Biddr’s response…"
-              : isStreaming
-                ? "Biddr is responding…"
-                : "Biddr is thinking…"}
-          </p>
-        ) : null}
-
         <section className="guardrail-note" aria-label="Recommendation policy">
           <ShieldCheckIcon size={19} aria-hidden="true" />
           <div>
@@ -233,28 +257,47 @@ export function CopilotChat({
       </div>
 
       <form className="composer" aria-label="Send a message to Biddr" onSubmit={handleSubmit}>
-        <label htmlFor="copilot-message">Ask the copilot</label>
-        <div className="composer-row">
-          <textarea
-            id="copilot-message"
-            name="message"
-            rows={2}
-            maxLength={MAX_USER_MESSAGE_CHARACTERS}
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={handleComposerKeyDown}
-            placeholder="Should we bid on the current player?"
-            aria-describedby="composer-hint"
-            disabled={!connected || busy}
-          />
-          <button className="send-button" type="submit" disabled={!canSend}>
-            Send
-          </button>
+        <label className="composer-label" htmlFor="copilot-message">
+          Ask the copilot
+        </label>
+        <div className="composer-shell" data-state={composerState}>
+          <div className="composer-row">
+            <textarea
+              ref={composerRef}
+              id="copilot-message"
+              name="message"
+              rows={1}
+              maxLength={MAX_USER_MESSAGE_CHARACTERS}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={handleComposerKeyDown}
+              placeholder="Ask about the current player or your strategy…"
+              aria-describedby="composer-hint"
+              disabled={!connected || busy}
+            />
+            <button
+              className="send-button"
+              type="submit"
+              aria-label="Send"
+              title="Send message"
+              disabled={!canSend}
+            >
+              <ArrowUpIcon size={19} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="composer-footer" id="composer-hint">
+            <span className="composer-status" role="status" aria-live="polite">
+              <span className="composer-status-dot" aria-hidden="true" />
+              {composerStatus}
+            </span>
+            <span className="composer-shortcut">Enter to send · Shift+Enter for new line</span>
+            {showCharacterCounter ? (
+              <span className="composer-counter">
+                {input.length} / {MAX_USER_MESSAGE_CHARACTERS}
+              </span>
+            ) : null}
+          </div>
         </div>
-        <small id="composer-hint">
-          Enter sends · Shift+Enter adds a new line · {input.length} /
-          {MAX_USER_MESSAGE_CHARACTERS} characters
-        </small>
       </form>
     </>
   );
