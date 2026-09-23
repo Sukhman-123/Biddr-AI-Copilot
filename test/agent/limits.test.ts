@@ -23,12 +23,33 @@ describe("model execution limits", () => {
     const available = selectUnusedToolNames(
       ["getAuctionState", "analyzeBid", "getStrategy"],
       [
-        { toolCalls: [{ toolName: "getAuctionState" }] },
-        { toolCalls: [{ toolName: "analyzeBid" }] }
+        {
+          toolCalls: [{ toolName: "getAuctionState" }],
+          toolResults: [{ toolName: "getAuctionState" }]
+        },
+        {
+          toolCalls: [{ toolName: "analyzeBid" }],
+          toolResults: [{ toolName: "analyzeBid" }]
+        }
       ]
     );
 
     expect(available).toEqual(["getStrategy"]);
+  });
+
+  it("allows one retry after a failed tool call and then stops", () => {
+    const toolNames = ["analyzeBid"] as const;
+    const failedAttempt = {
+      toolCalls: [{ toolName: "analyzeBid" }],
+      toolResults: []
+    };
+
+    expect(selectUnusedToolNames(toolNames, [failedAttempt])).toEqual([
+      "analyzeBid"
+    ]);
+    expect(
+      selectUnusedToolNames(toolNames, [failedAttempt, failedAttempt])
+    ).toEqual([]);
   });
 
   it("keeps only the recent bounded conversation window", () => {

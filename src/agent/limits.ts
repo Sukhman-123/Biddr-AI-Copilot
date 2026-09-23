@@ -8,19 +8,31 @@ export const MAX_MESSAGE_PARTS = 16;
 
 type ToolStepLike = {
   toolCalls: readonly { toolName: string }[];
+  toolResults: readonly { toolName: string }[];
 };
 
 export function selectUnusedToolNames<T extends string>(
   toolNames: readonly T[],
   completedSteps: readonly ToolStepLike[]
 ): T[] {
-  const usedToolNames = new Set(
+  const successfulToolNames = new Set(
     completedSteps.flatMap((step) =>
-      step.toolCalls.map((toolCall) => toolCall.toolName)
+      step.toolResults.map((toolResult) => toolResult.toolName)
     )
   );
+  const toolAttemptCounts = completedSteps
+    .flatMap((step) => step.toolCalls)
+    .reduce<Map<string, number>>((counts, toolCall) => {
+      const nextCounts = new Map(counts);
+      nextCounts.set(toolCall.toolName, (counts.get(toolCall.toolName) ?? 0) + 1);
+      return nextCounts;
+    }, new Map());
 
-  return toolNames.filter((toolName) => !usedToolNames.has(toolName));
+  return toolNames.filter(
+    (toolName) =>
+      !successfulToolNames.has(toolName) &&
+      (toolAttemptCounts.get(toolName) ?? 0) < 2
+  );
 }
 
 type ChatMessageLike = {

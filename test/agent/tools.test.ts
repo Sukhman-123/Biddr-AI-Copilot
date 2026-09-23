@@ -10,7 +10,8 @@ import {
   commitSimulatedBidInputSchema,
   createAuctionToolHandlers,
   createAuctionTools,
-  listRemainingPlayersInputSchema
+  listRemainingPlayersInputSchema,
+  readOnlyToolInputSchema
 } from "../../src/agent/tools";
 import { analyzeBid } from "../../src/domain";
 
@@ -28,6 +29,15 @@ function createContext() {
 }
 
 describe("auction tool schemas", () => {
+  it("ignores harmless arguments supplied to read-only tools", () => {
+    expect(
+      readOnlyToolInputSchema.parse({
+        player: "current",
+        includeReasoning: true
+      })
+    ).toEqual({ player: "current", includeReasoning: true });
+  });
+
   it("accepts bounded role filters and supplies the default limit", () => {
     expect(listRemainingPlayersInputSchema.parse({})).toEqual({ limit: 12 });
     expect(
@@ -159,7 +169,10 @@ describe("deterministic auction tool handlers", () => {
     const analyze = tools.analyzeBid.execute;
     if (!analyze) throw new Error("Analysis tool must be executable.");
 
-    const output = await analyze({}, { toolCallId: "analysis-1", messages: [] });
+    const output = await analyze(
+      { player: "current" },
+      { toolCallId: "analysis-1", messages: [] }
+    );
     const valid = await safeValidateUIMessages({
       messages: [
         {
@@ -170,7 +183,7 @@ describe("deterministic auction tool handlers", () => {
               type: "tool-analyzeBid",
               toolCallId: "analysis-1",
               state: "output-available",
-              input: {},
+              input: { player: "current" },
               output
             }
           ]

@@ -408,6 +408,13 @@ describe("Copilot chat", () => {
               errorText: "private provider detail"
             },
             {
+              type: "tool-analyzeBid",
+              toolCallId: "analysis-error-duplicate",
+              state: "output-error",
+              input: {},
+              errorText: "another private provider detail"
+            },
+            {
               type: "tool-commitSimulatedBid",
               toolCallId: "commit-1",
               state: "approval-requested",
@@ -423,6 +430,9 @@ describe("Copilot chat", () => {
     expect(
       screen.getByLabelText("Running deterministic bid analysis: Failed")
     ).toHaveTextContent("could not complete");
+    expect(
+      screen.getAllByLabelText("Running deterministic bid analysis: Failed")
+    ).toHaveLength(1);
     expect(screen.queryByText("private provider detail")).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("Preparing simulated bid: Approval required")

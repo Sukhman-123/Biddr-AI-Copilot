@@ -49,21 +49,38 @@ function hasVisiblePart(message: UIMessage): boolean {
   );
 }
 
+function getUserTurnBounds(
+  messages: UIMessage[],
+  messageIndex: number
+): { start: number; end: number } {
+  let start = 0;
+  let end = messages.length;
+
+  for (let index = messageIndex; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") {
+      start = index;
+      break;
+    }
+  }
+  for (let index = messageIndex + 1; index < messages.length; index += 1) {
+    if (messages[index]?.role === "user") {
+      end = index;
+      break;
+    }
+  }
+
+  return { start, end };
+}
+
 function hasPriorRecommendationForPlayer(
   messages: UIMessage[],
   messageIndex: number,
   partIndex: number,
   playerId: string
 ): boolean {
-  let turnStartIndex = 0;
-  for (let index = messageIndex; index >= 0; index -= 1) {
-    if (messages[index]?.role === "user") {
-      turnStartIndex = index;
-      break;
-    }
-  }
+  const { start } = getUserTurnBounds(messages, messageIndex);
 
-  for (let index = turnStartIndex; index <= messageIndex; index += 1) {
+  for (let index = start; index <= messageIndex; index += 1) {
     const message = messages[index];
     if (!message) continue;
     const finalPartIndex =
@@ -84,6 +101,42 @@ function hasPriorRecommendationForPlayer(
   }
 
   return false;
+}
+
+function shouldHideAnalyzeError(
+  messages: UIMessage[],
+  messageIndex: number,
+  partIndex: number
+): boolean {
+  const { start, end } = getUserTurnBounds(messages, messageIndex);
+  let priorErrorFound = false;
+
+  for (let index = start; index < end; index += 1) {
+    const message = messages[index];
+    if (!message) continue;
+
+    for (let candidateIndex = 0; candidateIndex < message.parts.length; candidateIndex += 1) {
+      const candidate = message.parts[candidateIndex];
+      if (!candidate || !isToolUIPart(candidate) || getToolName(candidate) !== "analyzeBid") {
+        continue;
+      }
+      if (
+        candidate.state === "output-available" &&
+        parseBidRecommendation(candidate.output)
+      ) {
+        return true;
+      }
+      if (
+        candidate.state === "output-error" &&
+        (index < messageIndex ||
+          (index === messageIndex && candidateIndex < partIndex))
+      ) {
+        priorErrorFound = true;
+      }
+    }
+  }
+
+  return priorErrorFound;
 }
 
 function ResponseProgress({
@@ -355,6 +408,17 @@ export function CopilotChat({
                         ) {
                           return null;
                         }
+                      }
+                      if (
+                        getToolName(part) === "analyzeBid" &&
+                        part.state === "output-error" &&
+                        shouldHideAnalyzeError(
+                          visibleMessages,
+                          messageIndex,
+                          index
+                        )
+                      ) {
+                        return null;
                       }
 
                       if (!isProminentToolActivity(part)) {

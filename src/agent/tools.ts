@@ -46,7 +46,7 @@ export function assertBiddrModelToolSurface(
   }
 }
 
-const emptyInputSchema = z.object({}).strict();
+export const readOnlyToolInputSchema = z.object({}).catchall(z.unknown());
 
 export const listRemainingPlayersInputSchema = z
   .object({
@@ -343,21 +343,21 @@ export function createAuctionTools(context: AuctionToolContext) {
     getAuctionState: tool({
       description:
         "Read the current auction summary, purse, active lot, current bid, and recent bid history. Use this instead of guessing auction numbers.",
-      inputSchema: emptyInputSchema,
+      inputSchema: readOnlyToolInputSchema,
       outputSchema: getAuctionStateOutputSchema,
       execute: handlers.getAuctionState
     }),
     getCurrentPlayer: tool({
       description:
         "Read the active fictional player's role, style, valuation, current bid, and next valid bid.",
-      inputSchema: emptyInputSchema,
+      inputSchema: readOnlyToolInputSchema,
       outputSchema: getCurrentPlayerOutputSchema,
       execute: handlers.getCurrentPlayer
     }),
     getTeamComposition: tool({
       description:
         "Read the user's current fictional squad, role counts, open slots, role gaps, and remaining purse.",
-      inputSchema: emptyInputSchema,
+      inputSchema: readOnlyToolInputSchema,
       outputSchema: getTeamCompositionOutputSchema,
       execute: handlers.getTeamComposition
     }),
@@ -371,14 +371,14 @@ export function createAuctionTools(context: AuctionToolContext) {
     analyzeBid: tool({
       description:
         "Run Biddr's deterministic valuation engine for the active player. Returns BID, CAUTION, or PASS, a maximum bid, transparent numerical factors, and reasons.",
-      inputSchema: emptyInputSchema,
+      inputSchema: readOnlyToolInputSchema,
       outputSchema: analyzeBidOutputSchema,
       execute: handlers.analyzeBid
     }),
     getStrategy: tool({
       description:
         "Read the remembered reserve percentage, risk tolerance, and priority roles that influence recommendations.",
-      inputSchema: emptyInputSchema,
+      inputSchema: readOnlyToolInputSchema,
       outputSchema: strategyPreferencesSchema,
       execute: handlers.getStrategy
     }),
