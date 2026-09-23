@@ -1,8 +1,12 @@
 import {
   ArrowUpIcon,
+  ChartDonutIcon,
   ChatCircleDotsIcon,
+  CrosshairIcon,
+  CurrencyInrIcon,
   ShieldCheckIcon,
-  SparkleIcon
+  SparkleIcon,
+  UsersThreeIcon
 } from "@phosphor-icons/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
@@ -15,9 +19,10 @@ import { MAX_USER_MESSAGE_CHARACTERS } from "../agent/limits";
 import { ToolActivity } from "./tool-activity";
 
 const STARTER_PROMPTS = [
-  "Should we bid on the current player?",
-  "Which role should we prioritize next?",
-  "Explain our purse and reserve strategy."
+  { label: "Analyze this player", Icon: CrosshairIcon },
+  { label: "What’s our maximum safe bid?", Icon: CurrencyInrIcon },
+  { label: "Which squad role should we target next?", Icon: UsersThreeIcon },
+  { label: "Summarize our auction strategy", Icon: ChartDonutIcon }
 ] as const;
 
 const CHARACTER_COUNTER_THRESHOLD = Math.floor(
@@ -146,22 +151,23 @@ export function CopilotChat({
       >
         {visibleMessages.length === 0 ? (
           <div className="empty-chat">
-            <ChatCircleDotsIcon size={30} aria-hidden="true" />
-            <h3>Plan the next move</h3>
-            <p>
-              Ask Biddr to analyze the current player, squad gaps, or remaining
-              purse. Every numerical recommendation comes from the auction
-              engine.
-            </p>
+            <span className="empty-chat-icon" aria-hidden="true">
+              <ChatCircleDotsIcon size={25} weight="duotone" />
+            </span>
+            <h3>Make the next call</h3>
+            <p>Get guidance grounded in your live auction state.</p>
             <div className="starter-prompts" aria-label="Suggested questions">
-              {STARTER_PROMPTS.map((prompt) => (
+              {STARTER_PROMPTS.map(({ label, Icon }) => (
                 <button
-                  key={prompt}
+                  key={label}
                   type="button"
-                  onClick={() => sendText(prompt)}
+                  onClick={() => sendText(label)}
                   disabled={!connected || busy}
                 >
-                  {prompt}
+                  <span className="starter-prompt-icon" aria-hidden="true">
+                    <Icon size={17} />
+                  </span>
+                  <span>{label}</span>
                 </button>
               ))}
             </div>

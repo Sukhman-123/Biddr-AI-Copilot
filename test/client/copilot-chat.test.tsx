@@ -137,14 +137,14 @@ describe("Copilot chat", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Which role should we prioritize next?"
+        name: "Which squad role should we target next?"
       })
     );
 
     expect(chatHook.sendMessage).toHaveBeenCalledWith({
       role: "user",
       parts: [
-        { type: "text", text: "Which role should we prioritize next?" }
+        { type: "text", text: "Which squad role should we target next?" }
       ]
     });
   });
@@ -230,7 +230,7 @@ describe("Copilot chat", () => {
     );
     await user.click(
       screen.getByRole("button", {
-        name: "Should we bid on the current player?"
+        name: "Analyze this player"
       })
     );
     expect(chatHook.sendMessage).not.toHaveBeenCalled();
