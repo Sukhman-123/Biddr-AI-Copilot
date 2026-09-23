@@ -6,6 +6,23 @@ export const MAX_USER_MESSAGE_CHARACTERS = 1_200;
 export const MAX_ASSISTANT_MESSAGE_CHARACTERS = 4_000;
 export const MAX_MESSAGE_PARTS = 16;
 
+type ToolStepLike = {
+  toolCalls: readonly { toolName: string }[];
+};
+
+export function selectUnusedToolNames<T extends string>(
+  toolNames: readonly T[],
+  completedSteps: readonly ToolStepLike[]
+): T[] {
+  const usedToolNames = new Set(
+    completedSteps.flatMap((step) =>
+      step.toolCalls.map((toolCall) => toolCall.toolName)
+    )
+  );
+
+  return toolNames.filter((toolName) => !usedToolNames.has(toolName));
+}
+
 type ChatMessageLike = {
   role: string;
 };

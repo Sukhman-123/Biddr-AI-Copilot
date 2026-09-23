@@ -13,6 +13,9 @@ describe("Workers AI model configuration", () => {
       "Auction figures must come from Biddr's deterministic tools"
     );
     expect(BIDDR_SYSTEM_PROMPT).toContain("instead of guessing");
+    expect(BIDDR_SYSTEM_PROMPT).toContain(
+      "Never call the same tool more than once"
+    );
     expect(BIDDR_SYSTEM_PROMPT).toContain("no URL, network, code-execution");
   });
 

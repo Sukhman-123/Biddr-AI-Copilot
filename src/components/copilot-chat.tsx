@@ -16,12 +16,13 @@ import {
 } from "@phosphor-icons/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { isToolUIPart, type UIMessage } from "ai";
+import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import type {
   AgentConnectionStatus,
   useBiddrAgent
 } from "../client/use-biddr-agent";
 import { isProminentToolActivity } from "../client/tool-activity-presentation";
+import { parseBidRecommendation } from "../client/tool-presentation";
 import { MAX_USER_MESSAGE_CHARACTERS } from "../agent/limits";
 import {
   ToolActivity,
@@ -46,6 +47,43 @@ function hasVisiblePart(message: UIMessage): boolean {
     (part) =>
       (part.type === "text" && part.text.length > 0) || isToolUIPart(part)
   );
+}
+
+function hasPriorRecommendationForPlayer(
+  messages: UIMessage[],
+  messageIndex: number,
+  partIndex: number,
+  playerId: string
+): boolean {
+  let turnStartIndex = 0;
+  for (let index = messageIndex; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") {
+      turnStartIndex = index;
+      break;
+    }
+  }
+
+  for (let index = turnStartIndex; index <= messageIndex; index += 1) {
+    const message = messages[index];
+    if (!message) continue;
+    const finalPartIndex =
+      index === messageIndex ? partIndex : message.parts.length;
+
+    for (let candidateIndex = 0; candidateIndex < finalPartIndex; candidateIndex += 1) {
+      const candidate = message.parts[candidateIndex];
+      if (
+        candidate &&
+        isToolUIPart(candidate) &&
+        getToolName(candidate) === "analyzeBid" &&
+        candidate.state === "output-available" &&
+        parseBidRecommendation(candidate.output)?.playerId === playerId
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function ResponseProgress({
@@ -301,6 +339,24 @@ export function CopilotChat({
                     }
 
                     if (isToolUIPart(part)) {
+                      if (
+                        getToolName(part) === "analyzeBid" &&
+                        part.state === "output-available"
+                      ) {
+                        const recommendation = parseBidRecommendation(part.output);
+                        if (
+                          recommendation &&
+                          hasPriorRecommendationForPlayer(
+                            visibleMessages,
+                            messageIndex,
+                            index,
+                            recommendation.playerId
+                          )
+                        ) {
+                          return null;
+                        }
+                      }
+
                       if (!isProminentToolActivity(part)) {
                         if (renderedRoutineTools) return null;
                         renderedRoutineTools = true;

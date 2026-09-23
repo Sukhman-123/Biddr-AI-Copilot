@@ -6,7 +6,8 @@ import {
   MAX_TOOL_STEPS,
   MAX_USER_MESSAGE_CHARACTERS,
   selectBoundedChatContext,
-  selectRecentChatMessages
+  selectRecentChatMessages,
+  selectUnusedToolNames
 } from "../../src/agent/limits";
 
 describe("model execution limits", () => {
@@ -16,6 +17,18 @@ describe("model execution limits", () => {
     expect(MAX_MODEL_CONTEXT_MESSAGES).toBe(24);
     expect(MAX_MODEL_CONTEXT_CHARACTERS).toBe(12_000);
     expect(MAX_USER_MESSAGE_CHARACTERS).toBe(1_200);
+  });
+
+  it("prevents a tool from running twice in one model response", () => {
+    const available = selectUnusedToolNames(
+      ["getAuctionState", "analyzeBid", "getStrategy"],
+      [
+        { toolCalls: [{ toolName: "getAuctionState" }] },
+        { toolCalls: [{ toolName: "analyzeBid" }] }
+      ]
+    );
+
+    expect(available).toEqual(["getStrategy"]);
   });
 
   it("keeps only the recent bounded conversation window", () => {

@@ -341,6 +341,13 @@ describe("Copilot chat", () => {
               state: "output-available",
               input: {},
               output: recommendation
+            },
+            {
+              type: "tool-analyzeBid",
+              toolCallId: "analysis-duplicate",
+              state: "output-available",
+              input: {},
+              output: recommendation
             }
           ]
         }
@@ -357,6 +364,9 @@ describe("Copilot chat", () => {
     expect(
       screen.getByLabelText("Running deterministic bid analysis: Complete")
     ).toBeVisible();
+    expect(
+      screen.getAllByLabelText("BID bid recommendation")
+    ).toHaveLength(1);
     expect(screen.getByLabelText("BID bid recommendation")).toBeVisible();
     expect(screen.getByText("₹2.60 Cr")).toBeVisible();
     expect(screen.getByText("₹4.20 Cr")).toBeVisible();

@@ -27,6 +27,7 @@ import {
 import {
   MAX_MODEL_CONTEXT_MESSAGES,
   selectBoundedChatContext,
+  selectUnusedToolNames,
   MAX_OUTPUT_TOKENS,
   MAX_TOOL_STEPS,
 } from "./agent/limits";
@@ -44,6 +45,7 @@ import {
   type BiddrAgentState
 } from "./agent/state";
 import {
+  BIDDR_MODEL_TOOL_NAMES,
   assertBiddrModelToolSurface,
   createAuctionTools
 } from "./agent/tools";
@@ -166,6 +168,17 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
         tools,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         stopWhen: stepCountIs(MAX_TOOL_STEPS),
+        prepareStep: ({ steps }) => {
+          const activeTools = selectUnusedToolNames(
+            BIDDR_MODEL_TOOL_NAMES,
+            steps
+          );
+
+          return {
+            activeTools,
+            ...(activeTools.length === 0 ? { toolChoice: "none" as const } : {})
+          };
+        },
         ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
       });
       const modelStream = result.toUIMessageStream({
