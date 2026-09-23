@@ -26,12 +26,13 @@ import {
 } from "./agent/chat-config";
 import {
   MAX_MODEL_CONTEXT_MESSAGES,
+  hasSuccessfulToolResult,
   selectBoundedChatContext,
-  selectUnusedToolNames,
   MAX_OUTPUT_TOKENS,
   MAX_TOOL_STEPS,
 } from "./agent/limits";
 import { BIDDR_MODEL_ID, BIDDR_SYSTEM_PROMPT } from "./agent/model";
+import { prepareBiddrModelStep } from "./agent/model-loop";
 import {
   parseBiddrAgentState,
   strategyPreferencesSchema
@@ -45,7 +46,6 @@ import {
   type BiddrAgentState
 } from "./agent/state";
 import {
-  BIDDR_MODEL_TOOL_NAMES,
   assertBiddrModelToolSurface,
   createAuctionTools
 } from "./agent/tools";
@@ -167,18 +167,11 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
         messages: modelMessages,
         tools,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
-        stopWhen: stepCountIs(MAX_TOOL_STEPS),
-        prepareStep: ({ steps }) => {
-          const activeTools = selectUnusedToolNames(
-            BIDDR_MODEL_TOOL_NAMES,
-            steps
-          );
-
-          return {
-            activeTools,
-            ...(activeTools.length === 0 ? { toolChoice: "none" as const } : {})
-          };
-        },
+        stopWhen: [
+          hasSuccessfulToolResult("analyzeBid"),
+          stepCountIs(MAX_TOOL_STEPS)
+        ],
+        prepareStep: ({ steps }) => prepareBiddrModelStep(steps),
         ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
       });
       const modelStream = result.toUIMessageStream({

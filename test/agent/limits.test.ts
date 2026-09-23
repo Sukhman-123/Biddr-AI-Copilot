@@ -5,6 +5,7 @@ import {
   MAX_OUTPUT_TOKENS,
   MAX_TOOL_STEPS,
   MAX_USER_MESSAGE_CHARACTERS,
+  hasSuccessfulToolResult,
   selectBoundedChatContext,
   selectRecentChatMessages,
   selectUnusedToolNames
@@ -50,6 +51,31 @@ describe("model execution limits", () => {
     expect(
       selectUnusedToolNames(toolNames, [failedAttempt, failedAttempt])
     ).toEqual([]);
+  });
+
+  it("stops after a successful deterministic bid analysis", () => {
+    const shouldStop = hasSuccessfulToolResult("analyzeBid");
+
+    expect(
+      shouldStop({
+        steps: [
+          {
+            toolCalls: [{ toolName: "analyzeBid" }],
+            toolResults: [{ toolName: "analyzeBid" }]
+          }
+        ]
+      })
+    ).toBe(true);
+    expect(
+      shouldStop({
+        steps: [
+          {
+            toolCalls: [{ toolName: "analyzeBid" }],
+            toolResults: []
+          }
+        ]
+      })
+    ).toBe(false);
   });
 
   it("keeps only the recent bounded conversation window", () => {

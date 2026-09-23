@@ -16,6 +16,9 @@ describe("Workers AI model configuration", () => {
     expect(BIDDR_SYSTEM_PROMPT).toContain(
       "Never call the same tool more than once"
     );
+    expect(BIDDR_SYSTEM_PROMPT).toContain(
+      "never claim that a successfully used tool is unavailable"
+    );
     expect(BIDDR_SYSTEM_PROMPT).toContain("no URL, network, code-execution");
   });
 

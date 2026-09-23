@@ -6,7 +6,7 @@ export const MAX_USER_MESSAGE_CHARACTERS = 1_200;
 export const MAX_ASSISTANT_MESSAGE_CHARACTERS = 4_000;
 export const MAX_MESSAGE_PARTS = 16;
 
-type ToolStepLike = {
+export type ToolStepLike = {
   toolCalls: readonly { toolName: string }[];
   toolResults: readonly { toolName: string }[];
 };
@@ -33,6 +33,13 @@ export function selectUnusedToolNames<T extends string>(
       !successfulToolNames.has(toolName) &&
       (toolAttemptCounts.get(toolName) ?? 0) < 2
   );
+}
+
+export function hasSuccessfulToolResult(toolName: string) {
+  return ({ steps }: { steps: readonly ToolStepLike[] }): boolean =>
+    steps.at(-1)?.toolResults.some(
+      (toolResult) => toolResult.toolName === toolName
+    ) ?? false;
 }
 
 type ChatMessageLike = {
