@@ -101,6 +101,7 @@ describe("Biddr application shell", () => {
     const launcher = screen.getByRole("button", {
       name: "Open strategy room"
     });
+    const conversation = screen.getByLabelText("Copilot conversation");
     await user.click(launcher);
 
     expect(launcher).toHaveAttribute("aria-expanded", "true");
@@ -108,7 +109,7 @@ describe("Biddr application shell", () => {
 
     await user.click(screen.getByRole("button", { name: "Back to auction" }));
     expect(launcher).toHaveAttribute("aria-expanded", "false");
-    expect(chatHook.useAgentChat).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText("Copilot conversation")).toBe(conversation);
   });
 
   it("enables the connected auction and strategy controls", () => {
