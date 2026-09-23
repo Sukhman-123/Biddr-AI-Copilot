@@ -7,6 +7,7 @@ import { MAX_USER_MESSAGE_CHARACTERS } from "../../src/agent/limits";
 const chatHook = vi.hoisted(() => ({
   addToolApprovalResponse: vi.fn(),
   clearHistory: vi.fn(),
+  regenerate: vi.fn(),
   sendMessage: vi.fn(),
   stop: vi.fn(),
   useAgentChat: vi.fn()
@@ -51,6 +52,7 @@ function mockChat(overrides: Record<string, unknown> = {}) {
     messages: [],
     addToolApprovalResponse: chatHook.addToolApprovalResponse,
     clearHistory: chatHook.clearHistory,
+    regenerate: chatHook.regenerate,
     sendMessage: chatHook.sendMessage,
     stop: chatHook.stop,
     status: "idle",
@@ -64,6 +66,7 @@ describe("Copilot chat", () => {
   beforeEach(() => {
     chatHook.addToolApprovalResponse.mockReset();
     chatHook.clearHistory.mockReset();
+    chatHook.regenerate.mockReset();
     chatHook.sendMessage.mockReset();
     chatHook.stop.mockReset();
     chatHook.useAgentChat.mockReset();
@@ -225,6 +228,53 @@ describe("Copilot chat", () => {
     expect(screen.getByRole("textbox")).toBeDisabled();
   });
 
+  it("copies a completed assistant response", async () => {
+    const user = userEvent.setup();
+    mockChat({
+      messages: [
+        {
+          id: "assistant-copy",
+          role: "assistant",
+          parts: [{ type: "text", text: "Hold at the current price." }]
+        }
+      ]
+    });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+
+    await user.click(screen.getByRole("button", { name: "Copy" }));
+    expect(screen.getByRole("button", { name: "Copied" })).toBeVisible();
+  });
+
+  it("protects the reader's scroll position and offers a jump to latest action", async () => {
+    const user = userEvent.setup();
+    mockChat({
+      messages: [
+        {
+          id: "assistant-scroll",
+          role: "assistant",
+          parts: [{ type: "text", text: "A long response to review." }]
+        }
+      ]
+    });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+    const transcript = screen.getByLabelText("Copilot conversation");
+    const scrollTo = vi.fn();
+
+    Object.defineProperties(transcript, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 900 },
+      scrollTop: { configurable: true, value: 100, writable: true },
+      scrollTo: { configurable: true, value: scrollTo }
+    });
+    fireEvent.scroll(transcript);
+
+    const jump = screen.getByRole("button", { name: "Jump to latest" });
+    expect(jump).toBeVisible();
+    scrollTo.mockClear();
+    await user.click(jump);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 900, behavior: "smooth" });
+  });
+
   it("shows an inline pending turn and can stop generation", async () => {
     const user = userEvent.setup();
     mockChat({
@@ -260,6 +310,15 @@ describe("Copilot chat", () => {
       })
     );
     expect(chatHook.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("retries a failed response when the Agent is connected", async () => {
+    const user = userEvent.setup();
+    mockChat({ status: "error" });
+    render(<CopilotChat agent={agent} connectionStatus="connected" />);
+
+    await user.click(screen.getByRole("button", { name: "Retry response" }));
+    expect(chatHook.regenerate).toHaveBeenCalledOnce();
   });
 
   it("collapses routine tool progress and keeps recommendations visible", async () => {

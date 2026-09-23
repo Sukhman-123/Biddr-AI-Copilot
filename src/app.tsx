@@ -1,7 +1,8 @@
 import {
+  ArrowLeftIcon,
   SparkleIcon
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { StrategyPreferences } from "./domain";
 import {
   useBiddrAgent,
@@ -32,10 +33,40 @@ type ActionFeedback = {
 function App({ sessionId }: AppProps) {
   const { agent, connectionStatus, reconnect } = useBiddrAgent(sessionId);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const mobileChatLauncherRef = useRef<HTMLButtonElement>(null);
+  const mobileChatCloseRef = useRef<HTMLButtonElement>(null);
   const [actionFeedback, setActionFeedback] =
     useState<ActionFeedback | null>(null);
   const controlsDisabled =
     connectionStatus !== "connected" || !agent.state || pendingAction !== null;
+
+  useEffect(() => {
+    if (!mobileChatOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const backgroundElements = [
+      document.querySelector<HTMLElement>(".topbar"),
+      document.querySelector<HTMLElement>(".auction-column")
+    ].filter((element): element is HTMLElement => element !== null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileChatOpen(false);
+        window.requestAnimationFrame(() => mobileChatLauncherRef.current?.focus());
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    backgroundElements.forEach((element) => element.setAttribute("inert", ""));
+    window.addEventListener("keydown", closeOnEscape);
+    mobileChatCloseRef.current?.focus();
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      backgroundElements.forEach((element) => element.removeAttribute("inert"));
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileChatOpen]);
 
   const runAction = async (
     action: PendingAction,
@@ -122,8 +153,42 @@ function App({ sessionId }: AppProps) {
           onSaveStrategy={saveStrategy}
         />
 
-        <aside className="copilot-column" aria-labelledby="copilot-heading">
+        <button
+          className="mobile-chat-launcher"
+          ref={mobileChatLauncherRef}
+          type="button"
+          aria-controls="copilot-panel"
+          aria-expanded={mobileChatOpen}
+          data-chat-open={mobileChatOpen}
+          onClick={() => setMobileChatOpen(true)}
+        >
+          <SparkleIcon size={17} weight="fill" aria-hidden="true" />
+          Open strategy room
+        </button>
+
+        <aside
+          id="copilot-panel"
+          className="copilot-column"
+          data-mobile-open={mobileChatOpen}
+          aria-labelledby="copilot-heading"
+          role={mobileChatOpen ? "dialog" : undefined}
+          aria-modal={mobileChatOpen || undefined}
+        >
           <div className="copilot-header">
+            <button
+              className="mobile-chat-close"
+              ref={mobileChatCloseRef}
+              type="button"
+              aria-label="Back to auction"
+              onClick={() => {
+                setMobileChatOpen(false);
+                window.requestAnimationFrame(() =>
+                  mobileChatLauncherRef.current?.focus()
+                );
+              }}
+            >
+              <ArrowLeftIcon size={19} aria-hidden="true" />
+            </button>
             <div className="copilot-title">
               <span className="copilot-icon" aria-hidden="true">
                 <SparkleIcon size={18} weight="fill" />

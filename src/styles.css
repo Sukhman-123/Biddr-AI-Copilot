@@ -60,6 +60,11 @@ textarea:disabled {
   min-height: 100vh;
 }
 
+.mobile-chat-launcher,
+.mobile-chat-close {
+  display: none;
+}
+
 .skip-link {
   position: fixed;
   top: 12px;
@@ -896,6 +901,33 @@ h1 {
   line-height: 1.5;
 }
 
+.chat-message-actions {
+  display: flex;
+  min-height: 25px;
+  align-items: center;
+  padding-left: 5px;
+}
+
+.chat-message-actions button {
+  min-height: 25px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 7px;
+  color: #718078;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.chat-message-actions button:hover:not(:disabled) {
+  color: #b8c6bf;
+  background: rgb(255 255 255 / 4%);
+}
+
 .chat-response-progress {
   width: fit-content;
   min-height: 38px;
@@ -1327,6 +1359,10 @@ h1 {
 }
 
 .chat-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0;
   padding: 11px 13px;
   border-radius: 11px;
@@ -1337,6 +1373,48 @@ h1 {
   color: #ffc3c3;
   border: 1px solid rgb(255 107 107 / 25%);
   background: rgb(255 107 107 / 7%);
+}
+
+.chat-error p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.chat-error button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 0 10px;
+  border: 1px solid rgb(255 107 107 / 30%);
+  border-radius: 8px;
+  color: #ffd0d0;
+  background: rgb(255 107 107 / 8%);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.jump-to-latest {
+  position: sticky;
+  bottom: 8px;
+  z-index: 2;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: #c9d6cf;
+  background: rgb(17 24 21 / 94%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
 }
 
 .guardrail-note {
@@ -1598,8 +1676,92 @@ h1 {
     border-bottom: 1px solid var(--line);
   }
 
+  .mobile-chat-launcher {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 12;
+    padding: 0 17px;
+    border: 1px solid rgb(223 255 88 / 30%);
+    border-radius: 999px;
+    color: #172014;
+    background: var(--accent);
+    box-shadow: 0 14px 38px rgb(0 0 0 / 36%);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .mobile-chat-launcher[data-chat-open="true"] {
+    display: none;
+  }
+
   .copilot-column {
-    min-height: min(720px, 100vh);
+    display: none;
+  }
+
+  .copilot-column[data-mobile-open="true"] {
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    padding:
+      max(18px, env(safe-area-inset-top))
+      max(18px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
+    border: 0;
+    overflow: hidden;
+  }
+
+  .mobile-chat-close {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .copilot-header {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    background: var(--surface);
+  }
+
+  .copilot-header .connection-controls {
+    margin-left: auto;
+  }
+
+  .copilot-column[data-mobile-open="true"] .chat-preview {
+    flex: 1 1 auto;
+    padding-block: 24px;
+  }
+
+  .copilot-column[data-mobile-open="true"] .composer {
+    flex: 0 0 auto;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .copilot-column[data-mobile-open="true"] .chat-history-actions {
+    top: max(18px, env(safe-area-inset-top));
+    right: max(18px, env(safe-area-inset-right));
+  }
+
+  .starter-prompts button,
+  .approval-actions .button {
+    min-height: 48px;
   }
 }
 

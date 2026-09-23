@@ -17,7 +17,10 @@ const agentHook = vi.hoisted(() => ({
 }));
 const chatHook = vi.hoisted(() => ({
   addToolApprovalResponse: vi.fn(),
+  clearHistory: vi.fn(),
+  regenerate: vi.fn(),
   sendMessage: vi.fn(),
+  stop: vi.fn(),
   useAgentChat: vi.fn()
 }));
 
@@ -56,12 +59,18 @@ describe("Biddr application shell", () => {
       reconnect: agentHook.reconnect
     });
     chatHook.addToolApprovalResponse.mockReset();
+    chatHook.clearHistory.mockReset();
+    chatHook.regenerate.mockReset();
     chatHook.sendMessage.mockReset();
+    chatHook.stop.mockReset();
     chatHook.useAgentChat.mockReset();
     chatHook.useAgentChat.mockReturnValue({
       addToolApprovalResponse: chatHook.addToolApprovalResponse,
+      clearHistory: chatHook.clearHistory,
       messages: [],
+      regenerate: chatHook.regenerate,
       sendMessage: chatHook.sendMessage,
+      stop: chatHook.stop,
       status: "idle",
       isStreaming: false,
       isRecovering: false
@@ -83,6 +92,23 @@ describe("Biddr application shell", () => {
       screen.getByRole("link", { name: "Skip to auction workspace" })
     ).toHaveAttribute("href", "#main");
     expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("opens and closes the persistent mobile strategy room", async () => {
+    const user = userEvent.setup();
+    render(<App sessionId={SESSION_ID} />);
+
+    const launcher = screen.getByRole("button", {
+      name: "Open strategy room"
+    });
+    await user.click(launcher);
+
+    expect(launcher).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("dialog", { name: "Strategy room" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Back to auction" }));
+    expect(launcher).toHaveAttribute("aria-expanded", "false");
+    expect(chatHook.useAgentChat).toHaveBeenCalledTimes(1);
   });
 
   it("enables the connected auction and strategy controls", () => {

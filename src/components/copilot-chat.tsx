@@ -1,7 +1,11 @@
 import {
+  ArrowClockwiseIcon,
+  ArrowDownIcon,
   ArrowUpIcon,
   ChartDonutIcon,
+  CheckIcon,
   ChatCircleDotsIcon,
+  CopyIcon,
   CrosshairIcon,
   CurrencyInrIcon,
   DotsThreeVerticalIcon,
@@ -78,6 +82,8 @@ export function CopilotChat({
 }) {
   const [input, setInput] = useState("");
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const historyMenuRef = useRef<HTMLDetailsElement>(null);
@@ -85,6 +91,7 @@ export function CopilotChat({
     addToolApprovalResponse,
     clearHistory,
     messages,
+    regenerate,
     sendMessage,
     stop,
     status,
@@ -104,8 +111,21 @@ export function CopilotChat({
 
   useEffect(() => {
     const transcript = transcriptRef.current;
-    if (transcript) transcript.scrollTop = transcript.scrollHeight;
-  }, [messages, isStreaming]);
+    if (!transcript || !isNearBottom) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      if (typeof transcript.scrollTo === "function") {
+        transcript.scrollTo({
+          top: transcript.scrollHeight,
+          behavior: isStreaming ? "auto" : "smooth"
+        });
+      } else {
+        transcript.scrollTop = transcript.scrollHeight;
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [messages, isStreaming, isNearBottom]);
 
   useEffect(() => {
     const composer = composerRef.current;
@@ -134,6 +154,8 @@ export function CopilotChat({
       parts: [{ type: "text", text: trimmed }]
     });
     setInput("");
+    setIsNearBottom(true);
+    composerRef.current?.focus();
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -173,6 +195,37 @@ export function CopilotChat({
       : "Thinking";
   const lastVisibleMessage = visibleMessages.at(-1);
 
+  const handleTranscriptScroll = () => {
+    const transcript = transcriptRef.current;
+    if (!transcript) return;
+
+    const distanceFromBottom =
+      transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight;
+    setIsNearBottom(distanceFromBottom < 80);
+  };
+
+  const jumpToLatest = () => {
+    const transcript = transcriptRef.current;
+    if (!transcript) return;
+
+    setIsNearBottom(true);
+    transcript.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" });
+  };
+
+  const copyAssistantMessage = async (messageId: string, text: string) => {
+    if (!navigator.clipboard) return;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMessageId(messageId);
+      window.setTimeout(() => {
+        setCopiedMessageId((current) => (current === messageId ? null : current));
+      }, 1800);
+    } catch {
+      setCopiedMessageId(null);
+    }
+  };
+
   const clearChat = () => {
     if (!canClearHistory) return;
     clearHistory();
@@ -188,6 +241,7 @@ export function CopilotChat({
         aria-label="Copilot conversation"
         aria-live="polite"
         aria-relevant="additions text"
+        onScroll={handleTranscriptScroll}
       >
         {visibleMessages.length === 0 && !busy ? (
           <div className="empty-chat">
@@ -218,6 +272,10 @@ export function CopilotChat({
               const routineToolParts = message.parts
                 .filter(isToolUIPart)
                 .filter((part) => !isProminentToolActivity(part));
+              const assistantText = message.parts
+                .filter((part) => part.type === "text")
+                .map((part) => part.text)
+                .join("\n\n");
               let renderedRoutineTools = false;
 
               return (
@@ -282,6 +340,26 @@ export function CopilotChat({
                       onStop={() => void stop()}
                     />
                   ) : null}
+                  {message.role === "assistant" && assistantText ? (
+                    <div className="chat-message-actions">
+                      <button
+                        type="button"
+                        disabled={
+                          busy && messageIndex === visibleMessages.length - 1
+                        }
+                        onClick={() =>
+                          void copyAssistantMessage(message.id, assistantText)
+                        }
+                      >
+                        {copiedMessageId === message.id ? (
+                          <CheckIcon size={13} weight="bold" aria-hidden="true" />
+                        ) : (
+                          <CopyIcon size={13} aria-hidden="true" />
+                        )}
+                        {copiedMessageId === message.id ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </li>
               );
@@ -307,10 +385,27 @@ export function CopilotChat({
         )}
 
         {status === "error" ? (
-          <p className="chat-error" role="alert">
-            The model response could not finish. Your conversation and auction
-            state are saved; check your connection and send the question again.
-          </p>
+          <div className="chat-error" role="alert">
+            <p>
+              The response could not finish. Your conversation and auction state
+              are saved.
+            </p>
+            <button
+              type="button"
+              disabled={!connected || busy}
+              onClick={() => void regenerate()}
+            >
+              <ArrowClockwiseIcon size={14} weight="bold" aria-hidden="true" />
+              Retry response
+            </button>
+          </div>
+        ) : null}
+
+        {!isNearBottom ? (
+          <button className="jump-to-latest" type="button" onClick={jumpToLatest}>
+            <ArrowDownIcon size={14} weight="bold" aria-hidden="true" />
+            Jump to latest
+          </button>
         ) : null}
 
         <details className="guardrail-note">
