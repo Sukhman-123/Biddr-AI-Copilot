@@ -128,7 +128,10 @@ function RecommendationCard({
       <div className="recommendation-primary">
         <span>Maximum safe bid</span>
         <strong>{formatLakhAsCrore(recommendation.maximumBidLakh)}</strong>
-        <small>Next bid {formatLakhAsCrore(recommendation.nextBidLakh)}</small>
+        <small>
+          Next bid
+          <span>{formatLakhAsCrore(recommendation.nextBidLakh)}</span>
+        </small>
       </div>
 
       <div

@@ -1236,6 +1236,16 @@ h1 {
   font-size: 11px;
 }
 
+.recommendation-primary > small {
+  display: flex;
+  gap: 5px;
+}
+
+.recommendation-primary > small span {
+  color: #c9d6cf;
+  font-weight: 700;
+}
+
 .recommendation-primary > strong {
   color: var(--recommendation-color);
   font-size: clamp(27px, 5vw, 36px);
