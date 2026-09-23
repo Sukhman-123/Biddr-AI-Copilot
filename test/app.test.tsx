@@ -77,7 +77,7 @@ describe("Biddr application shell", () => {
     expect(
       screen.getByRole("heading", { name: "Strategy room" })
     ).toBeInTheDocument();
-    expect(screen.getByText("Agent connected")).toBeInTheDocument();
+    expect(screen.getByText("Online")).toBeInTheDocument();
     expect(agentHook.useBiddrAgent).toHaveBeenCalledWith(SESSION_ID);
     expect(
       screen.getByRole("link", { name: "Skip to auction workspace" })
@@ -197,7 +197,7 @@ describe("Biddr application shell", () => {
     });
     render(<App sessionId={SESSION_ID} />);
 
-    expect(screen.getByText("Agent unavailable")).toBeVisible();
+    expect(screen.getByText("Offline")).toBeVisible();
     expect(
       screen.getByText(/The Agent is unavailable\. Your auction state remains saved/)
     ).toBeVisible();

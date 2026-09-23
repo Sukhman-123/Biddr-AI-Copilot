@@ -1,4 +1,4 @@
-import { CaretDownIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CaretDownIcon } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import {
   getToolName,
@@ -90,34 +90,63 @@ export function ToolActivityGroup({ parts }: { parts: AnyToolPart[] }) {
   );
 }
 
-function RecommendationCard({ output }: { output: unknown }) {
+function RecommendationCard({
+  output,
+  actionDisabled,
+  onPrepareBid
+}: {
+  output: unknown;
+  actionDisabled: boolean;
+  onPrepareBid: ((amountLakh: number) => void) | undefined;
+}) {
   const recommendation = parseBidRecommendation(output);
   if (!recommendation) return null;
+  const bidToCeilingPercent =
+    recommendation.maximumBidLakh > 0
+      ? Math.min(
+          100,
+          Math.max(
+            0,
+            (recommendation.nextBidLakh / recommendation.maximumBidLakh) * 100
+          )
+        )
+      : 0;
 
   return (
     <section
       className="recommendation-card"
+      data-decision={recommendation.decision}
       aria-label={`${recommendation.decision} bid recommendation`}
     >
       <div className="recommendation-heading">
-        <div>
-          <span>Bid recommendation</span>
-          <strong>Engine-backed ceiling</strong>
-        </div>
+        <span>Engine recommendation</span>
         <mark data-decision={recommendation.decision}>
           {recommendation.decision}
         </mark>
       </div>
 
+      <div className="recommendation-primary">
+        <span>Maximum safe bid</span>
+        <strong>{formatLakhAsCrore(recommendation.maximumBidLakh)}</strong>
+        <small>Next bid {formatLakhAsCrore(recommendation.nextBidLakh)}</small>
+      </div>
+
+      <div
+        className="recommendation-scale"
+        role="progressbar"
+        aria-label="Next bid compared with maximum safe bid"
+        aria-valuemin={0}
+        aria-valuemax={recommendation.maximumBidLakh}
+        aria-valuenow={recommendation.nextBidLakh}
+      >
+        <span style={{ width: `${bidToCeilingPercent}%` }} />
+      </div>
+      <div className="recommendation-scale-labels" aria-hidden="true">
+        <span>Next bid</span>
+        <span>Safe ceiling</span>
+      </div>
+
       <dl className="recommendation-values">
-        <div>
-          <dt>Next bid</dt>
-          <dd>{formatLakhAsCrore(recommendation.nextBidLakh)}</dd>
-        </div>
-        <div>
-          <dt>Maximum bid</dt>
-          <dd>{formatLakhAsCrore(recommendation.maximumBidLakh)}</dd>
-        </div>
         <div>
           <dt>Headroom</dt>
           <dd>{formatLakhAsCrore(recommendation.headroomLakh)}</dd>
@@ -137,11 +166,26 @@ function RecommendationCard({ output }: { output: unknown }) {
       </div>
 
       {recommendation.reasons.length > 0 ? (
-        <ul className="recommendation-reasons">
-          {recommendation.reasons.map((reason) => (
-            <li key={reason}>{reason}</li>
-          ))}
-        </ul>
+        <div className="recommendation-why">
+          <strong>Why this call</strong>
+          <ul className="recommendation-reasons">
+            {recommendation.reasons.slice(0, 3).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {recommendation.decision === "BID" ? (
+        <button
+          className="recommendation-action"
+          type="button"
+          disabled={actionDisabled || !onPrepareBid}
+          onClick={() => onPrepareBid?.(recommendation.nextBidLakh)}
+        >
+          Prepare {formatLakhAsCrore(recommendation.nextBidLakh)} bid
+          <ArrowRightIcon size={15} weight="bold" aria-hidden="true" />
+        </button>
       ) : null}
     </section>
   );
@@ -232,11 +276,15 @@ function ApprovalControls({
 export function ToolActivity({
   part,
   approvalDisabled = false,
-  onApprovalResponse
+  actionDisabled = false,
+  onApprovalResponse,
+  onPrepareBid
 }: {
   part: AnyToolPart;
   approvalDisabled?: boolean;
+  actionDisabled?: boolean;
   onApprovalResponse?: ChatAddToolApproveResponseFunction;
+  onPrepareBid?: (amountLakh: number) => void;
 }) {
   const toolName = getToolName(part);
   const activity = getActivityState(part);
@@ -282,7 +330,11 @@ export function ToolActivity({
       ) : null}
 
       {toolName === "analyzeBid" && part.state === "output-available" ? (
-        <RecommendationCard output={part.output} />
+        <RecommendationCard
+          output={part.output}
+          actionDisabled={actionDisabled}
+          onPrepareBid={onPrepareBid}
+        />
       ) : null}
     </article>
   );

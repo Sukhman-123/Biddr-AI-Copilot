@@ -165,6 +165,7 @@ describe("Copilot chat", () => {
     });
     render(<CopilotChat agent={agent} connectionStatus="connected" />);
 
+    await user.click(screen.getByLabelText("Chat options"));
     await user.click(screen.getByRole("button", { name: "Clear chat" }));
     expect(
       screen.getByRole("group", { name: "Confirm clear chat" })
@@ -177,7 +178,8 @@ describe("Copilot chat", () => {
     expect(chatHook.clearHistory).toHaveBeenCalledOnce();
   });
 
-  it("does not allow chat clearing during a stream", () => {
+  it("does not allow chat clearing during a stream", async () => {
+    const user = userEvent.setup();
     mockChat({
       messages: [
         {
@@ -191,6 +193,7 @@ describe("Copilot chat", () => {
     });
     render(<CopilotChat agent={agent} connectionStatus="connected" />);
 
+    await user.click(screen.getByLabelText("Chat options"));
     expect(screen.getByRole("button", { name: "Clear chat" })).toBeDisabled();
   });
 
@@ -301,6 +304,24 @@ describe("Copilot chat", () => {
     expect(
       screen.getByText("The next bid remains below the deterministic ceiling.")
     ).toBeVisible();
+    expect(
+      screen.getByRole("progressbar", {
+        name: "Next bid compared with maximum safe bid"
+      })
+    ).toHaveAttribute("aria-valuenow", "260");
+
+    await user.click(
+      screen.getByRole("button", { name: "Prepare ₹2.60 Cr bid" })
+    );
+    expect(chatHook.sendMessage).toHaveBeenCalledWith({
+      role: "user",
+      parts: [
+        {
+          type: "text",
+          text: "Prepare a simulated bid of 260 lakh for the current player."
+        }
+      ]
+    });
   });
 
   it("shows safe tool errors and explicit approval-required controls", () => {

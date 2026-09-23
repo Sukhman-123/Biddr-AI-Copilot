@@ -12,10 +12,10 @@ import { CopilotChat } from "./components/copilot-chat";
 import { ResetDemoButton } from "./components/reset-demo-button";
 
 const connectionLabels: Record<AgentConnectionStatus, string> = {
-  connecting: "Connecting to Agent",
-  connected: "Agent connected",
-  reconnecting: "Reconnecting to Agent",
-  unavailable: "Agent unavailable"
+  connecting: "Connecting",
+  connected: "Online",
+  reconnecting: "Reconnecting",
+  unavailable: "Offline"
 };
 
 type AppProps = {

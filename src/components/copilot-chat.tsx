@@ -4,6 +4,7 @@ import {
   ChatCircleDotsIcon,
   CrosshairIcon,
   CurrencyInrIcon,
+  DotsThreeVerticalIcon,
   ShieldCheckIcon,
   SquareIcon,
   SparkleIcon,
@@ -79,6 +80,7 @@ export function CopilotChat({
   const [confirmingClear, setConfirmingClear] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const historyMenuRef = useRef<HTMLDetailsElement>(null);
   const {
     addToolApprovalResponse,
     clearHistory,
@@ -175,6 +177,7 @@ export function CopilotChat({
     if (!canClearHistory) return;
     clearHistory();
     setConfirmingClear(false);
+    historyMenuRef.current?.removeAttribute("open");
   };
 
   return (
@@ -256,7 +259,13 @@ export function CopilotChat({
                         <ToolActivity
                           part={part}
                           approvalDisabled={!connected || busy}
+                          actionDisabled={!connected || busy}
                           onApprovalResponse={addToolApprovalResponse}
+                          onPrepareBid={(amountLakh) =>
+                            sendText(
+                              `Prepare a simulated bid of ${amountLakh} lakh for the current player.`
+                            )
+                          }
                           key={part.toolCallId}
                         />
                       );
@@ -304,44 +313,53 @@ export function CopilotChat({
           </p>
         ) : null}
 
-        <section className="guardrail-note" aria-label="Recommendation policy">
-          <ShieldCheckIcon size={19} aria-hidden="true" />
-          <div>
-            <strong>Numbers stay deterministic</strong>
-            <p>The AI explains decisions; tested code sets every bid ceiling.</p>
-          </div>
-        </section>
+        <details className="guardrail-note">
+          <summary>
+            <ShieldCheckIcon size={15} aria-hidden="true" />
+            <span>Engine-verified numbers</span>
+          </summary>
+          <p>Tested auction code sets every bid ceiling; AI explains the decision.</p>
+        </details>
       </div>
 
       <div className="chat-history-actions">
-        {confirmingClear ? (
-          <div role="group" aria-label="Confirm clear chat">
-            <span>Clear this conversation only?</span>
-            <button
-              className="button button-danger"
-              type="button"
-              onClick={clearChat}
-            >
-              Confirm clear chat
-            </button>
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={() => setConfirmingClear(false)}
-            >
-              Cancel
-            </button>
+        <details className="chat-menu" ref={historyMenuRef}>
+          <summary aria-label="Chat options" title="Chat options">
+            <DotsThreeVerticalIcon size={20} weight="bold" aria-hidden="true" />
+          </summary>
+          <div className="chat-menu-popover">
+            {confirmingClear ? (
+              <div role="group" aria-label="Confirm clear chat">
+                <span>Clear this conversation only?</span>
+                <div>
+                  <button
+                    className="button button-danger"
+                    type="button"
+                    onClick={clearChat}
+                  >
+                    Confirm clear chat
+                  </button>
+                  <button
+                    className="button button-secondary"
+                    type="button"
+                    onClick={() => setConfirmingClear(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="chat-menu-item"
+                type="button"
+                disabled={!canClearHistory}
+                onClick={() => setConfirmingClear(true)}
+              >
+                Clear chat
+              </button>
+            )}
           </div>
-        ) : (
-          <button
-            className="button button-secondary"
-            type="button"
-            disabled={!canClearHistory}
-            onClick={() => setConfirmingClear(true)}
-          >
-            Clear chat
-          </button>
-        )}
+        </details>
       </div>
 
       <form className="composer" aria-label="Send a message to Biddr" onSubmit={handleSubmit}>
