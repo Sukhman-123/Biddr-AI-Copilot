@@ -362,35 +362,24 @@ describe("Copilot chat", () => {
       screen.getByLabelText("Reading auction state: Working")
     ).toBeVisible();
     expect(
-      screen.getByLabelText("Running deterministic bid analysis: Complete")
-    ).toBeVisible();
-    expect(
       screen.getAllByLabelText("BID bid recommendation")
     ).toHaveLength(1);
     expect(screen.getByLabelText("BID bid recommendation")).toBeVisible();
-    expect(screen.getByText("₹2.60 Cr")).toBeVisible();
-    expect(screen.getByText("₹4.20 Cr")).toBeVisible();
+    expect(screen.getByText(/BID on the current player/)).toBeVisible();
+    expect(screen.getByText(/maximum safe bid is ₹4.20 Cr/)).toBeVisible();
+    expect(screen.getByText(/next valid bid is ₹2.60 Cr/)).toBeVisible();
+    expect(screen.getByText(/protecting a ₹18.00 Cr reserve/)).toBeVisible();
     expect(
-      screen.getByText("The next bid remains below the deterministic ceiling.")
+      screen.getByText(/The next bid remains below the deterministic ceiling\./)
     ).toBeVisible();
     expect(
-      screen.getByRole("progressbar", {
+      screen.queryByRole("progressbar", {
         name: "Next bid compared with maximum safe bid"
       })
-    ).toHaveAttribute("aria-valuenow", "260");
-
-    await user.click(
-      screen.getByRole("button", { name: "Prepare ₹2.60 Cr bid" })
-    );
-    expect(chatHook.sendMessage).toHaveBeenCalledWith({
-      role: "user",
-      parts: [
-        {
-          type: "text",
-          text: "Prepare a simulated bid of 260 lakh for the current player."
-        }
-      ]
-    });
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Prepare ₹2.60 Cr bid" })
+    ).not.toBeInTheDocument();
   });
 
   it("shows safe tool errors and explicit approval-required controls", () => {

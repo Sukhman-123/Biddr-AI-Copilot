@@ -10,14 +10,14 @@ describe("Workers AI model configuration", () => {
 
   it("forbids the model from inventing authoritative auction state", () => {
     expect(BIDDR_SYSTEM_PROMPT).toContain(
-      "Auction figures must come from Biddr's deterministic tools"
+      "TRUSTED_DETERMINISTIC_AUCTION_CONTEXT"
     );
-    expect(BIDDR_SYSTEM_PROMPT).toContain("instead of guessing");
+    expect(BIDDR_SYSTEM_PROMPT).toContain("Answer directly from that context");
     expect(BIDDR_SYSTEM_PROMPT).toContain(
-      "Never call the same tool more than once"
+      "never expose internal tool mechanics"
     );
     expect(BIDDR_SYSTEM_PROMPT).toContain(
-      "never claim that a successfully used tool is unavailable"
+      "The only action tool you may call is commitSimulatedBid"
     );
     expect(BIDDR_SYSTEM_PROMPT).toContain("no URL, network, code-execution");
   });

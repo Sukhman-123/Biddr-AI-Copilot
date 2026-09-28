@@ -59,7 +59,7 @@ export const commitSimulatedBidInputSchema = z
   .object({
     amountLakh: z.number().int().positive()
   })
-  .strict();
+  .catchall(z.unknown());
 
 const playerSummarySchema = z
   .object({

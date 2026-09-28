@@ -11,6 +11,7 @@ import {
 } from "ai";
 import { callable, routeAgentRequest } from "agents";
 import { createWorkersAI } from "workers-ai-provider";
+import { buildAuctionChatContext } from "./agent/auction-chat-context";
 import {
   createDeterministicFallbackResponse,
   createFallbackAwareResponse,
@@ -26,7 +27,6 @@ import {
 } from "./agent/chat-config";
 import {
   MAX_MODEL_CONTEXT_MESSAGES,
-  hasSuccessfulToolResult,
   selectBoundedChatContext,
   MAX_OUTPUT_TOKENS,
   MAX_TOOL_STEPS,
@@ -159,19 +159,24 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
         reasoning: "before-last-message",
         toolCalls: "before-last-2-messages"
       });
+      const systemPrompt = `${BIDDR_SYSTEM_PROMPT}\n\n${buildAuctionChatContext(
+        this.getValidatedState().auction
+      )}`;
       const result = streamText({
         model: workersai(BIDDR_MODEL_ID, {
           sessionAffinity: this.sessionAffinity
         }),
-        system: BIDDR_SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: modelMessages,
         tools,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
-        stopWhen: [
-          hasSuccessfulToolResult("analyzeBid"),
-          stepCountIs(MAX_TOOL_STEPS)
-        ],
-        prepareStep: ({ steps }) => prepareBiddrModelStep(steps),
+        stopWhen: stepCountIs(MAX_TOOL_STEPS),
+        prepareStep: ({ steps }) => {
+          const currentSystemPrompt = `${BIDDR_SYSTEM_PROMPT}\n\n${buildAuctionChatContext(
+            this.getValidatedState().auction
+          )}`;
+          return prepareBiddrModelStep(steps, currentSystemPrompt);
+        },
         ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
       });
       const modelStream = result.toUIMessageStream({

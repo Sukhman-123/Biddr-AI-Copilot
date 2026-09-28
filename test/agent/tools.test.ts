@@ -68,9 +68,12 @@ describe("auction tool schemas", () => {
     expect(() =>
       commitSimulatedBidInputSchema.parse({ amountLakh: -260 })
     ).toThrow();
-    expect(() =>
-      commitSimulatedBidInputSchema.parse({ amountLakh: 260, actionId: "fake" })
-    ).toThrow();
+    expect(
+      commitSimulatedBidInputSchema.parse({
+        amountLakh: 260,
+        player: "current"
+      })
+    ).toEqual({ amountLakh: 260, player: "current" });
   });
 });
 

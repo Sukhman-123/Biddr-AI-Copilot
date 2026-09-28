@@ -1,4 +1,4 @@
-import { ArrowRightIcon, CaretDownIcon } from "@phosphor-icons/react";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import {
   getToolName,
@@ -90,106 +90,27 @@ export function ToolActivityGroup({ parts }: { parts: AnyToolPart[] }) {
   );
 }
 
-function RecommendationCard({
-  output,
-  actionDisabled,
-  onPrepareBid
+function RecommendationAnswer({
+  recommendation
 }: {
-  output: unknown;
-  actionDisabled: boolean;
-  onPrepareBid: ((amountLakh: number) => void) | undefined;
+  recommendation: NonNullable<ReturnType<typeof parseBidRecommendation>>;
 }) {
-  const recommendation = parseBidRecommendation(output);
-  if (!recommendation) return null;
-  const bidToCeilingPercent =
-    recommendation.maximumBidLakh > 0
-      ? Math.min(
-          100,
-          Math.max(
-            0,
-            (recommendation.nextBidLakh / recommendation.maximumBidLakh) * 100
-          )
-        )
-      : 0;
-
   return (
     <section
-      className="recommendation-card"
+      className="recommendation-answer"
       data-decision={recommendation.decision}
       aria-label={`${recommendation.decision} bid recommendation`}
     >
-      <div className="recommendation-heading">
-        <span>Engine recommendation</span>
-        <mark data-decision={recommendation.decision}>
-          {recommendation.decision}
-        </mark>
-      </div>
-
-      <div className="recommendation-primary">
-        <span>Maximum safe bid</span>
-        <strong>{formatLakhAsCrore(recommendation.maximumBidLakh)}</strong>
-        <small>
-          Next bid
-          <span>{formatLakhAsCrore(recommendation.nextBidLakh)}</span>
-        </small>
-      </div>
-
-      <div
-        className="recommendation-scale"
-        role="progressbar"
-        aria-label="Next bid compared with maximum safe bid"
-        aria-valuemin={0}
-        aria-valuemax={recommendation.maximumBidLakh}
-        aria-valuenow={recommendation.nextBidLakh}
-      >
-        <span style={{ width: `${bidToCeilingPercent}%` }} />
-      </div>
-      <div className="recommendation-scale-labels" aria-hidden="true">
-        <span>Next bid</span>
-        <span>Safe ceiling</span>
-      </div>
-
-      <dl className="recommendation-values">
-        <div>
-          <dt>Headroom</dt>
-          <dd>{formatLakhAsCrore(recommendation.headroomLakh)}</dd>
-        </div>
-        <div>
-          <dt>Reserve floor</dt>
-          <dd>{formatLakhAsCrore(recommendation.factors.reserveFloorLakh)}</dd>
-        </div>
-      </dl>
-
-      <div className="recommendation-context">
-        <span>Role gap {recommendation.factors.roleGap}</span>
-        <span>Supply {recommendation.factors.remainingRoleSupply}</span>
-        <span>
-          Scarcity {recommendation.factors.scarcityScore.toFixed(2)}
-        </span>
-      </div>
-
-      {recommendation.reasons.length > 0 ? (
-        <div className="recommendation-why">
-          <strong>Why this call</strong>
-          <ul className="recommendation-reasons">
-            {recommendation.reasons.slice(0, 3).map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {recommendation.decision === "BID" ? (
-        <button
-          className="recommendation-action"
-          type="button"
-          disabled={actionDisabled || !onPrepareBid}
-          onClick={() => onPrepareBid?.(recommendation.nextBidLakh)}
-        >
-          Prepare {formatLakhAsCrore(recommendation.nextBidLakh)} bid
-          <ArrowRightIcon size={15} weight="bold" aria-hidden="true" />
-        </button>
-      ) : null}
+      <p>
+        <strong>
+          {recommendation.decision} on the current player.
+        </strong>{" "}
+        The maximum safe bid is {formatLakhAsCrore(recommendation.maximumBidLakh)}.
+        The next valid bid is {formatLakhAsCrore(recommendation.nextBidLakh)},
+        leaving {formatLakhAsCrore(recommendation.headroomLakh)} headroom while
+        protecting a {formatLakhAsCrore(recommendation.factors.reserveFloorLakh)} reserve.
+      </p>
+      <p>{recommendation.reasons.slice(0, 3).join(" ")}</p>
     </section>
   );
 }
@@ -279,19 +200,22 @@ function ApprovalControls({
 export function ToolActivity({
   part,
   approvalDisabled = false,
-  actionDisabled = false,
-  onApprovalResponse,
-  onPrepareBid
+  onApprovalResponse
 }: {
   part: AnyToolPart;
   approvalDisabled?: boolean;
-  actionDisabled?: boolean;
   onApprovalResponse?: ChatAddToolApproveResponseFunction;
-  onPrepareBid?: (amountLakh: number) => void;
 }) {
   const toolName = getToolName(part);
   const activity = getActivityState(part);
   const label = TOOL_LABELS[toolName] ?? "Using an auction tool";
+
+  if (toolName === "analyzeBid" && part.state === "output-available") {
+    const recommendation = parseBidRecommendation(part.output);
+    if (recommendation) {
+      return <RecommendationAnswer recommendation={recommendation} />;
+    }
+  }
 
   return (
     <article
@@ -332,13 +256,6 @@ export function ToolActivity({
         <p>Bid approved. Applying the auction update…</p>
       ) : null}
 
-      {toolName === "analyzeBid" && part.state === "output-available" ? (
-        <RecommendationCard
-          output={part.output}
-          actionDisabled={actionDisabled}
-          onPrepareBid={onPrepareBid}
-        />
-      ) : null}
     </article>
   );
 }

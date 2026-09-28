@@ -437,13 +437,7 @@ export function CopilotChat({
                         <ToolActivity
                           part={part}
                           approvalDisabled={!connected || busy}
-                          actionDisabled={!connected || busy}
                           onApprovalResponse={addToolApprovalResponse}
-                          onPrepareBid={(amountLakh) =>
-                            sendText(
-                              `Prepare a simulated bid of ${amountLakh} lakh for the current player.`
-                            )
-                          }
                           key={part.toolCallId}
                         />
                       );
