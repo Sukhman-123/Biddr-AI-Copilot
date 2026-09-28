@@ -24,8 +24,8 @@ agent.
 
 - A fictional cricket-player auction with a purse, squad composition, current
   player, current bid, remaining players, and bid history.
-- A streaming chat copilot that reads live state through tools instead of
-  inventing auction figures.
+- A streaming chat copilot grounded in a deterministic live-state snapshot and
+  a versioned, intent-retrieved auction knowledge base.
 - A deterministic valuation engine that returns `BID`, `CAUTION`, or `PASS`
   and a maximum recommended bid.
 - Persistent conversation, auction state, and strategy preferences.
@@ -47,7 +47,8 @@ React + TypeScript UI
         v
 BiddrCopilotAgent (AIChatAgent)
         |-- Workers AI / Llama 3.3
-        |-- deterministic auction tools
+        |-- intent-retrieved Copilot guidance
+        |-- deterministic auction context
         |-- approval-gated simulated bid
         `-- Durable Object SQLite
               |-- chat messages
@@ -79,7 +80,7 @@ The MVP is complete only when all criteria below pass:
 
 1. A reviewer can open the deployed URL without creating an account.
 2. The dashboard shows the current player, bid, purse, and squad state.
-3. Copilot answers are grounded in the active auction through typed tools.
+3. Copilot answers are grounded in the deterministic active-auction context.
 4. A deterministic engine calculates the decision and maximum recommended bid.
 5. Remembered strategy changes a later recommendation.
 6. Refreshing or reconnecting preserves chat and auction state for that session.
@@ -118,6 +119,18 @@ npm run check
 Individual commands are available as `npm run lint`, `npm run typecheck`,
 `npm run test:run`, and `npm run build`. Regenerate binding and runtime types
 after changing `wrangler.jsonc` with `npm run cf-typegen`.
+
+### Copilot knowledge base
+
+[`knowledge/copilot-guide.md`](knowledge/copilot-guide.md) is the editable
+source for supported question categories, tone, answer structure, and action
+guidance. Headings are stable intent IDs used by the tested retriever. Live
+players, bids, purse values, and recommendations do not belong in this file;
+they are generated from the deterministic auction state for every request.
+
+When adding or renaming a `##` intent section, update the typed intent catalog
+and routing patterns in `src/agent/knowledge-base.ts`, then add representative
+questions to `test/agent/knowledge-base.test.ts`.
 
 ## Continuous deployment
 

@@ -12,7 +12,10 @@ describe("Workers AI model configuration", () => {
     expect(BIDDR_SYSTEM_PROMPT).toContain(
       "TRUSTED_DETERMINISTIC_AUCTION_CONTEXT"
     );
-    expect(BIDDR_SYSTEM_PROMPT).toContain("Answer directly from that context");
+    expect(BIDDR_SYSTEM_PROMPT).toContain("TRUSTED_COPILOT_KNOWLEDGE");
+    expect(BIDDR_SYSTEM_PROMPT).toContain(
+      "use the deterministic context as the only source of live auction facts"
+    );
     expect(BIDDR_SYSTEM_PROMPT).toContain(
       "never expose internal tool mechanics"
     );

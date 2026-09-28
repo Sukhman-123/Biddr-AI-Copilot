@@ -31,6 +31,10 @@ import {
   MAX_OUTPUT_TOKENS,
   MAX_TOOL_STEPS,
 } from "./agent/limits";
+import {
+  buildCopilotKnowledgeContext,
+  getLatestUserQuestion
+} from "./agent/knowledge-base";
 import { BIDDR_MODEL_ID, BIDDR_SYSTEM_PROMPT } from "./agent/model";
 import { prepareBiddrModelStep } from "./agent/model-loop";
 import {
@@ -116,6 +120,7 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
     _onFinish: unknown,
     options?: OnChatMessageOptions
   ) {
+    let latestUserQuestion = "";
     try {
       void this.getValidatedState();
       const tools = createAuctionTools({
@@ -141,6 +146,14 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
           "Please keep a single chat message under 1,200 characters and send it again."
         );
       }
+      latestUserQuestion = getLatestUserQuestion(validatedMessages.data);
+
+      const buildSystemPrompt = () =>
+        [
+          BIDDR_SYSTEM_PROMPT,
+          buildCopilotKnowledgeContext(latestUserQuestion),
+          buildAuctionChatContext(this.getValidatedState().auction)
+        ].join("\n\n");
 
       const workersai = createWorkersAI({ binding: this.env.AI });
       const recentMessages = selectBoundedChatContext(
@@ -159,9 +172,7 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
         reasoning: "before-last-message",
         toolCalls: "before-last-2-messages"
       });
-      const systemPrompt = `${BIDDR_SYSTEM_PROMPT}\n\n${buildAuctionChatContext(
-        this.getValidatedState().auction
-      )}`;
+      const systemPrompt = buildSystemPrompt();
       const result = streamText({
         model: workersai(BIDDR_MODEL_ID, {
           sessionAffinity: this.sessionAffinity
@@ -172,9 +183,7 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         stopWhen: stepCountIs(MAX_TOOL_STEPS),
         prepareStep: ({ steps }) => {
-          const currentSystemPrompt = `${BIDDR_SYSTEM_PROMPT}\n\n${buildAuctionChatContext(
-            this.getValidatedState().auction
-          )}`;
+          const currentSystemPrompt = buildSystemPrompt();
           return prepareBiddrModelStep(steps, currentSystemPrompt);
         },
         ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {})
@@ -185,10 +194,14 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
 
       return createFallbackAwareResponse(
         modelStream,
-        () => this.getFallbackAuction()
+        () => this.getFallbackAuction(),
+        () => latestUserQuestion
       );
     } catch {
-      return createDeterministicFallbackResponse(this.getFallbackAuction());
+      return createDeterministicFallbackResponse(
+        this.getFallbackAuction(),
+        latestUserQuestion
+      );
     }
   }
 }

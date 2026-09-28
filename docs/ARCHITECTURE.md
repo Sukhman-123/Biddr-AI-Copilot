@@ -22,6 +22,7 @@ Cloudflare Worker
 BiddrCopilotAgent (one Durable Object per demo session)
   |-- AIChatAgent message persistence and resumable streams
   |-- serialized auction and strategy state
+  |-- intent-retrieved Copilot knowledge
   |-- deterministic TypeScript auction engine
   |-- typed tools with Zod boundaries
   `-- Workers AI binding -> Llama 3.3 70B
@@ -71,16 +72,32 @@ constraints, squad gaps, role scarcity, player value, and bid ceiling. Its
 result contains both the decision and transparent factors suitable for display
 or LLM explanation.
 
-The LLM cannot override engine invariants. It may choose read tools, request an
-analysis, explain a result, remember validated preferences, or propose an
-approval-gated action.
+The LLM cannot override engine invariants. Every request receives a trusted
+snapshot containing the current player, deterministic analysis, purse, squad,
+role markets, remaining supply, and remembered strategy. The model explains
+that snapshot or proposes the approval-gated action; it does not need an
+unreliable read-tool loop to discover auction facts.
+
+### Copilot knowledge retrieval
+
+The versioned `knowledge/copilot-guide.md` file defines supported question
+categories, response style, comparison criteria, and action behavior. A typed,
+deterministic retriever classifies the latest validated user question and
+injects the core guidance plus at most three relevant intent sections. This
+keeps prompts focused and makes each supported route regression-testable.
+
+Knowledge never supplies live numbers. It controls how to answer; the auction
+engine controls what the current facts and recommendation are. Updating the
+guide changes behavior without model retraining or allowing conversations to
+rewrite trusted instructions.
 
 ### Workers AI
 
 The Agent calls `@cf/meta/llama-3.3-70b-instruct-fp8-fast` through the Workers AI
 binding and the Workers AI provider. Responses stream to the client. Model input
-contains bounded conversation history and structured tool results. Output and
-tool-step counts are capped to protect free-tier usage and latency.
+contains bounded conversation history, retrieved guidance, and the deterministic
+auction snapshot. Output and tool-step counts are capped to protect free-tier
+usage and latency.
 
 ## State design
 
@@ -124,18 +141,26 @@ public behavior.
 operations used by the client rather than model tools. Only
 `commitSimulatedBid` lets a model-requested operation spend purse.
 
-All tool inputs use strict Zod schemas. State-changing calls revalidate business
-rules at execution time; prior analysis is never treated as authorization.
+The read tools remain registered so persisted historical tool parts can be
+validated safely, but normal chat generation receives their facts in the
+deterministic snapshot. Only `commitSimulatedBid` is active for new model tool
+calls.
+
+All authoritative tool fields use Zod schemas. Read calls tolerate harmless
+extra model fields, while state-changing calls validate the required amount and
+revalidate business rules at execution time; prior analysis is never treated
+as authorization.
 
 ## Primary sequences
 
 ### Grounded recommendation
 
 1. Reviewer asks whether to bid on the current player.
-2. Agent calls state and analysis tools.
-3. The deterministic engine returns a decision, maximum bid, and factors.
-4. Llama produces a concise explanation grounded in that result.
-5. The client renders streamed text plus the structured recommendation.
+2. Agent selects the player-analysis guidance from the knowledge base.
+3. The deterministic engine builds the live auction snapshot with a decision,
+   maximum bid, and factors.
+4. Llama produces a concise explanation grounded in that trusted input.
+5. The client renders the streamed conversational answer.
 
 ### Approval-gated bid
 
@@ -176,6 +201,8 @@ rules at execution time; prior analysis is never treated as authorization.
 ## Testing strategy
 
 - Pure engine unit tests cover values, transitions, invariants, and boundaries.
+- Knowledge retrieval tests cover every supported question category, compound
+  requests, unrelated requests, and latest-message selection.
 - Worker-pool tests exercise Agent persistence, routing, and tools.
 - React tests cover dashboard states, chat composer, approval, errors,
   keyboard behavior, live-region semantics, and the skip link.

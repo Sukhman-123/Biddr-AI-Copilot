@@ -31,6 +31,28 @@ describe("deterministic inference fallback", () => {
     expect(body).toContain("Aarya Sen");
   });
 
+  it.each([
+    ["How much purse remains?", "₹38.60 Cr remaining"],
+    ["Who are the remaining fast bowlers?", "Kabir Das (91)"],
+    ["What is our team composition?", "7 players and 8 open slots"],
+    ["Who is the current player?", "Aarya Sen, a fast bowler"],
+    ["What is the current lot and latest bid?", "lot 1 of 12"]
+  ])("answers %s from deterministic state", (question, expected) => {
+    expect(
+      buildDeterministicFallbackMessage(createInitialAuctionState(), question)
+    ).toContain(expected);
+  });
+
+  it("redirects unrelated fallback questions to auction capabilities", () => {
+    const message = buildDeterministicFallbackMessage(
+      createInitialAuctionState(),
+      "What is the weather tomorrow?"
+    );
+
+    expect(message).toContain("focused on this fictional auction");
+    expect(message).not.toContain("BID on Aarya Sen");
+  });
+
   it("replaces a provider error chunk with normal fallback text", async () => {
     const failedStream = new ReadableStream<UIMessageChunk>({
       start(controller) {
@@ -40,12 +62,14 @@ describe("deterministic inference fallback", () => {
     });
     const response = createFallbackAwareResponse(
       failedStream,
-      createInitialAuctionState
+      createInitialAuctionState,
+      () => "What's our maximum safe bid?"
     );
     const body = await response.text();
 
     expect(body).toContain("Biddr is using its deterministic auction engine");
     expect(body).not.toContain("secret provider error");
     expect(body).not.toContain('"type":"error"');
+    expect(body).toContain("maximum safe bid for Aarya Sen is ₹4.60 Cr");
   });
 });
