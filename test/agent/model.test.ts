@@ -17,6 +17,9 @@ describe("Workers AI model configuration", () => {
       "use the deterministic context as the only source of live auction facts"
     );
     expect(BIDDR_SYSTEM_PROMPT).toContain(
+      "relevant subset"
+    );
+    expect(BIDDR_SYSTEM_PROMPT).toContain(
       "never expose internal tool mechanics"
     );
     expect(BIDDR_SYSTEM_PROMPT).toContain(

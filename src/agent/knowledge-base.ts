@@ -133,6 +133,7 @@ const INTENT_PATTERNS: ReadonlyArray<{
     intent: "remaining-players",
     patterns: [
       /\b(?:remaining|available|upcoming|left|next)\b.*\bplayers?\b/i,
+      /\bplayers?\b.*\b(?:remaining|available|upcoming|left)\b/i,
       /\b(?:remaining|available|upcoming|left|next)\b.*\b(?:batters?|wicketkeepers?|all[- ]rounders?|fast bowlers?|pacers?|spin bowlers?|spinners?)\b/i,
       /\bwho (?:is|are)(?: still)? (?:available|left|up next)\b/i,
       /\b(?:batters?|wicketkeepers?|all[- ]rounders?|fast bowlers?|pacers?|spin bowlers?|spinners?)\b.*\b(?:remaining|available|left)\b/i

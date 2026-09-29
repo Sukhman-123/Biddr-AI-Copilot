@@ -161,7 +161,10 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
             latestUserQuestion,
             conversationResolution
           ),
-          buildAuctionChatContext(this.getValidatedState().auction)
+          buildAuctionChatContext(
+            this.getValidatedState().auction,
+            conversationResolution
+          )
         ].join("\n\n");
 
       const workersai = createWorkersAI({ binding: this.env.AI });

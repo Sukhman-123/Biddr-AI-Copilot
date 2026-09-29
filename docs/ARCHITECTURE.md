@@ -72,9 +72,10 @@ constraints, squad gaps, role scarcity, player value, and bid ceiling. Its
 result contains both the decision and transparent factors suitable for display
 or LLM explanation.
 
-The LLM cannot override engine invariants. Every request receives a trusted
-snapshot containing the current player, deterministic analysis, purse, squad,
-role markets, remaining supply, and remembered strategy. The model explains
+The LLM cannot override engine invariants. Every request receives a trusted,
+intent-scoped snapshot containing only the relevant current-player, analysis,
+purse, squad, role-market, remaining-supply, and strategy sections. Compound
+questions receive the union of their required sections. The model explains
 that snapshot or proposes the approval-gated action; it does not need an
 unreliable read-tool loop to discover auction facts.
 
@@ -101,9 +102,9 @@ rewrite trusted instructions.
 
 The Agent calls `@cf/meta/llama-3.3-70b-instruct-fp8-fast` through the Workers AI
 binding and the Workers AI provider. Responses stream to the client. Model input
-contains bounded conversation history, retrieved guidance, and the deterministic
-auction snapshot. Output and tool-step counts are capped to protect free-tier
-usage and latency.
+contains bounded conversation history, retrieved guidance, and the scoped
+deterministic auction snapshot. Output and tool-step counts are capped to
+protect free-tier usage and latency.
 
 ## State design
 
