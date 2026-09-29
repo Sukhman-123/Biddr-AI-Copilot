@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   buildCopilotKnowledgeContext,
   classifyCopilotQuestion,
-  getLatestUserQuestion
+  findMentionedRole,
+  getLatestUserQuestion,
+  resolveCopilotConversation
 } from "../../src/agent/knowledge-base";
+import { createInitialAuctionState } from "../../src/domain";
 
 describe("Copilot knowledge retrieval", () => {
   it.each([
@@ -71,5 +74,180 @@ describe("Copilot knowledge retrieval", () => {
         }
       ])
     ).toBe("How much purse remains?");
+  });
+
+  it("inherits the previous intent for a short explanatory follow-up", () => {
+    const resolution = resolveCopilotConversation(
+      [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Analyze this player" }]
+        },
+        {
+          id: "assistant-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "BID on Aarya Sen." }]
+        },
+        {
+          id: "user-2",
+          role: "user",
+          parts: [{ type: "text", text: "Why?" }]
+        }
+      ],
+      createInitialAuctionState()
+    );
+
+    expect(resolution.intents).toEqual(["player-analysis"]);
+    expect(resolution.inheritedIntents).toEqual(["player-analysis"]);
+    expect(resolution.referencedPlayer?.name).toBe("Aarya Sen");
+    expect(resolution.referencedPlayerIsCurrent).toBe(true);
+  });
+
+  it("resolves a named future player without treating them as current", () => {
+    const resolution = resolveCopilotConversation(
+      [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Analyze this player" }]
+        },
+        {
+          id: "assistant-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Aarya Sen is the current player." }]
+        },
+        {
+          id: "user-2",
+          role: "user",
+          parts: [{ type: "text", text: "What about Kabir?" }]
+        }
+      ],
+      createInitialAuctionState()
+    );
+
+    expect(resolution.intents).toEqual(["player-analysis"]);
+    expect(resolution.referencedPlayer?.name).toBe("Kabir Das");
+    expect(resolution.referencedPlayerIsCurrent).toBe(false);
+    expect(resolution.referencedRole).toBe("fast-bowler");
+  });
+
+  it("resolves unique short names from the retained squad", () => {
+    const resolution = resolveCopilotConversation(
+      [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "What is our team composition?" }]
+        },
+        {
+          id: "assistant-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "The squad has seven players." }]
+        },
+        {
+          id: "user-2",
+          role: "user",
+          parts: [{ type: "text", text: "What about Dev?" }]
+        }
+      ],
+      createInitialAuctionState()
+    );
+
+    expect(resolution.referencedPlayer).toMatchObject({
+      name: "Dev Khanna",
+      source: "squad",
+      acquisitionPriceLakh: 360
+    });
+    expect(resolution.referencedPlayerIsCurrent).toBe(false);
+  });
+
+  it("combines a direct follow-up intent with inherited guidance", () => {
+    const resolution = resolveCopilotConversation(
+      [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "What's our maximum safe bid?" }]
+        },
+        {
+          id: "assistant-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "The ceiling is for Aarya Sen." }]
+        },
+        {
+          id: "user-2",
+          role: "user",
+          parts: [{ type: "text", text: "Can we afford that?" }]
+        }
+      ],
+      createInitialAuctionState()
+    );
+
+    expect(resolution.intents).toEqual(["purse-reserve", "safe-bid"]);
+    expect(resolution.inheritedIntents).toEqual(["safe-bid"]);
+    expect(resolution.referencedPlayer?.name).toBe("Aarya Sen");
+  });
+
+  it("does not inherit context for an unrelated short question", () => {
+    const resolution = resolveCopilotConversation(
+      [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Analyze this player" }]
+        },
+        {
+          id: "assistant-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "BID on Aarya Sen." }]
+        },
+        {
+          id: "user-2",
+          role: "user",
+          parts: [{ type: "text", text: "Weather tomorrow?" }]
+        }
+      ],
+      createInitialAuctionState()
+    );
+
+    expect(resolution.intents).toEqual(["unsupported"]);
+    expect(resolution.isFollowUp).toBe(false);
+  });
+
+  it.each([
+    ["pacers", "fast-bowler"],
+    ["keepers", "wicketkeeper"],
+    ["all rounders", "all-rounder"],
+    ["spinners", "spin-bowler"],
+    ["batsmen", "batter"]
+  ] as const)("normalizes the %s role alias", (alias, role) => {
+    expect(findMentionedRole(alias)).toBe(role);
+  });
+
+  it("adds resolved references to the trusted knowledge context", () => {
+    const state = createInitialAuctionState();
+    const messages = [
+      {
+        id: "user-1",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Analyze this player" }]
+      },
+      {
+        id: "user-2",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "What about Kabir?" }]
+      }
+    ];
+    const resolution = resolveCopilotConversation(messages, state);
+    const context = buildCopilotKnowledgeContext(
+      resolution.question,
+      resolution
+    );
+
+    expect(context).toContain("Conversation follow-up resolution");
+    expect(context).toContain("Referenced player: Kabir Das");
+    expect(context).toContain("Referenced player is current: false");
+    expect(context).toContain("never apply the current player's");
   });
 });

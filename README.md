@@ -26,6 +26,8 @@ agent.
   player, current bid, remaining players, and bid history.
 - A streaming chat copilot grounded in a deterministic live-state snapshot and
   a versioned, intent-retrieved auction knowledge base.
+- Conversation-aware follow-ups that resolve trusted player names, pronouns,
+  and role aliases without moving bid ceilings between players.
 - A deterministic valuation engine that returns `BID`, `CAUTION`, or `PASS`
   and a maximum recommended bid.
 - Persistent conversation, auction state, and strategy preferences.

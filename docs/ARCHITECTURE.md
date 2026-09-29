@@ -86,6 +86,12 @@ deterministic retriever classifies the latest validated user question and
 injects the core guidance plus at most three relevant intent sections. This
 keeps prompts focused and makes each supported route regression-testable.
 
+A conversation resolver recognizes genuine follow-ups, carries forward the
+most recent supported intent, and resolves pronouns, unique player-name parts,
+and role aliases against the trusted auction state. Unrelated short questions
+do not inherit context. Resolved future or retained players are explicitly
+marked as non-current so the active player's recommendation cannot be reused.
+
 Knowledge never supplies live numbers. It controls how to answer; the auction
 engine controls what the current facts and recommendation are. Updating the
 guide changes behavior without model retraining or allowing conversations to

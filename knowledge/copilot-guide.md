@@ -18,6 +18,10 @@ trusted deterministic auction context supplied with the current request.
 - If the auction context does not contain the requested fact, say what is
   unavailable and offer the closest supported answer.
 - Never say that an internal read or analysis function is unavailable.
+- For follow-up questions, preserve the resolved player, role, and earlier
+  question intent supplied with the selected guidance.
+- A recommendation and bid ceiling belong only to the active player. Never
+  reuse them for a named future player or someone already in the squad.
 
 ## capabilities
 

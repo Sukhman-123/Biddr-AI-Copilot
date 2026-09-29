@@ -33,7 +33,8 @@ import {
 } from "./agent/limits";
 import {
   buildCopilotKnowledgeContext,
-  getLatestUserQuestion
+  resolveCopilotConversation,
+  type CopilotConversationResolution
 } from "./agent/knowledge-base";
 import { BIDDR_MODEL_ID, BIDDR_SYSTEM_PROMPT } from "./agent/model";
 import { prepareBiddrModelStep } from "./agent/model-loop";
@@ -121,6 +122,7 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
     options?: OnChatMessageOptions
   ) {
     let latestUserQuestion = "";
+    let conversationResolution: CopilotConversationResolution | undefined;
     try {
       void this.getValidatedState();
       const tools = createAuctionTools({
@@ -146,12 +148,19 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
           "Please keep a single chat message under 1,200 characters and send it again."
         );
       }
-      latestUserQuestion = getLatestUserQuestion(validatedMessages.data);
+      conversationResolution = resolveCopilotConversation(
+        validatedMessages.data,
+        this.getValidatedState().auction
+      );
+      latestUserQuestion = conversationResolution.question;
 
       const buildSystemPrompt = () =>
         [
           BIDDR_SYSTEM_PROMPT,
-          buildCopilotKnowledgeContext(latestUserQuestion),
+          buildCopilotKnowledgeContext(
+            latestUserQuestion,
+            conversationResolution
+          ),
           buildAuctionChatContext(this.getValidatedState().auction)
         ].join("\n\n");
 
@@ -195,12 +204,14 @@ export class BiddrCopilotAgent extends AIChatAgent<Env, BiddrAgentState> {
       return createFallbackAwareResponse(
         modelStream,
         () => this.getFallbackAuction(),
-        () => latestUserQuestion
+        () => latestUserQuestion,
+        () => conversationResolution
       );
     } catch {
       return createDeterministicFallbackResponse(
         this.getFallbackAuction(),
-        latestUserQuestion
+        latestUserQuestion,
+        conversationResolution
       );
     }
   }

@@ -5,6 +5,7 @@ import {
   createDeterministicFallbackResponse,
   createFallbackAwareResponse
 } from "../../src/agent/fallback";
+import { resolveCopilotConversation } from "../../src/agent/knowledge-base";
 import { createInitialAuctionState } from "../../src/domain";
 
 describe("deterministic inference fallback", () => {
@@ -51,6 +52,37 @@ describe("deterministic inference fallback", () => {
 
     expect(message).toContain("focused on this fictional auction");
     expect(message).not.toContain("BID on Aarya Sen");
+  });
+
+  it("answers a named-player follow-up without reusing the current ceiling", () => {
+    const state = createInitialAuctionState();
+    const messages = [
+      {
+        id: "user-1",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Analyze this player" }]
+      },
+      {
+        id: "assistant-1",
+        role: "assistant" as const,
+        parts: [{ type: "text" as const, text: "BID on Aarya Sen." }]
+      },
+      {
+        id: "user-2",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "What about Kabir?" }]
+      }
+    ];
+    const resolution = resolveCopilotConversation(messages, state);
+    const message = buildDeterministicFallbackMessage(
+      state,
+      resolution.question,
+      resolution
+    );
+
+    expect(message).toContain("Kabir Das is a fast bowler");
+    expect(message).toContain("bid ceiling for Kabir Das");
+    expect(message).not.toContain("maximum safe bid is ₹4.60 Cr");
   });
 
   it("replaces a provider error chunk with normal fallback text", async () => {

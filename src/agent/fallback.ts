@@ -16,6 +16,8 @@ import {
 } from "../domain";
 import {
   classifyCopilotQuestion,
+  findMentionedRole,
+  type CopilotConversationResolution,
   type CopilotKnowledgeIntent
 } from "./knowledge-base";
 
@@ -23,7 +25,8 @@ const FALLBACK_TEXT_PART_ID = "biddr-deterministic-fallback";
 
 export function buildDeterministicFallbackMessage(
   state: AuctionState,
-  question = ""
+  question = "",
+  resolution?: CopilotConversationResolution
 ): string {
   const prefix =
     "Workers AI is unavailable or its daily quota has been reached, so Biddr is using its deterministic auction engine to answer this question.";
@@ -43,9 +46,9 @@ export function buildDeterministicFallbackMessage(
     ].join(" ");
   }
 
-  const intents = classifyCopilotQuestion(question);
+  const intents = resolution?.intents ?? classifyCopilotQuestion(question);
   const answers = intents.map((intent) =>
-    buildIntentFallback(state, intent, question)
+    buildIntentFallback(state, intent, question, resolution)
   );
   return [prefix, ...new Set(answers)].join(" ");
 }
@@ -60,23 +63,14 @@ function formatRole(role: PlayerRole): string {
   return role.replaceAll("-", " ");
 }
 
-function requestedRole(question: string): PlayerRole | null {
-  const rolePatterns: ReadonlyArray<[PlayerRole, RegExp]> = [
-    ["wicketkeeper", /\bwicketkeepers?\b/i],
-    ["all-rounder", /\ball[- ]rounders?\b/i],
-    ["fast-bowler", /\b(?:fast bowlers?|pacers?|pace bowlers?)\b/i],
-    ["spin-bowler", /\b(?:spin bowlers?|spinners?)\b/i],
-    ["batter", /\b(?:batters?|batsmen|batswomen)\b/i]
-  ];
-  return rolePatterns.find(([, pattern]) => pattern.test(question))?.[0] ?? null;
-}
-
 function buildIntentFallback(
   state: AuctionState,
   intent: CopilotKnowledgeIntent,
-  question: string
+  question: string,
+  resolution?: CopilotConversationResolution
 ): string {
   const player = getCurrentPlayer(state);
+  const referencedPlayer = resolution?.referencedPlayer ?? null;
 
   if (intent === "capabilities") {
     return "You can ask about the current player, safe and next bids, squad gaps, role priorities, purse and reserve, remaining players, comparisons, strategy, or a simulated bid.";
@@ -109,8 +103,17 @@ function buildIntentFallback(
       return `${state.teamName} has ${composition.totalPlayers} players and ${composition.openSlots} open slots. Role counts: ${counts}. Unfilled gaps: ${gaps || "none"}.`;
     }
     case "player-analysis":
+      if (referencedPlayer && referencedPlayer.id !== player.id) {
+        if (referencedPlayer.source === "squad") {
+          return `${referencedPlayer.name} is already in ${state.teamName}'s squad as a ${formatRole(referencedPlayer.role)}, acquired for ${formatMoney(referencedPlayer.acquisitionPriceLakh ?? 0)}. Bid analysis applies only to the active auction player, ${player.name}.`;
+        }
+        return `${referencedPlayer.name} is a ${formatRole(referencedPlayer.role)} (${referencedPlayer.style ?? "style unavailable"}), rated ${referencedPlayer.rating ?? "unrated"}, with an estimated value of ${formatMoney(referencedPlayer.estimatedValueLakh ?? 0)}. ${player.name} is the active player, so a deterministic bid ceiling for ${referencedPlayer.name} will only be available when that player becomes active.`;
+      }
       return `${recommendation.decision} on ${player.name}. The maximum safe bid is ${formatMoney(recommendation.maximumBidLakh)} and the next valid bid is ${formatMoney(recommendation.nextBidLakh)}, leaving ${formatMoney(Math.max(recommendation.headroomLakh, 0))} headroom. ${recommendation.reasons.slice(0, 3).join(" ")}`;
     case "safe-bid":
+      if (referencedPlayer && referencedPlayer.id !== player.id) {
+        return `${referencedPlayer.name} is not the active player, so there is no deterministic safe-bid ceiling for them yet. The current ceiling of ${formatMoney(recommendation.maximumBidLakh)} applies only to ${player.name}.`;
+      }
       return `The maximum safe bid for ${player.name} is ${formatMoney(recommendation.maximumBidLakh)}. The next valid bid is ${formatMoney(recommendation.nextBidLakh)}, leaving ${formatMoney(Math.max(recommendation.headroomLakh, 0))} headroom; stop when the next bid would exceed the ceiling.`;
     case "squad-priority": {
       const priorities = PLAYER_ROLES.map((role) => getRoleMarket(state, role))
@@ -127,7 +130,7 @@ function buildIntentFallback(
       return `${state.teamName} has ${formatMoney(state.purseRemainingLakh)} remaining. ${formatMoney(recommendation.factors.reserveFloorLakh)} is protected, leaving ${formatMoney(recommendation.factors.spendableAboveReserveLakh)} above reserve across ${composition.openSlots} open slots.`;
     case "remaining-players": {
       const remaining = getRemainingPlayersByRole(state);
-      const role = requestedRole(question);
+      const role = resolution?.referencedRole ?? findMentionedRole(question);
       const roles = role ? [role] : PLAYER_ROLES;
       const summaries = roles.map((currentRole) => {
         const players = remaining[currentRole];
@@ -140,14 +143,23 @@ function buildIntentFallback(
       return summaries.join("; ") + ".";
     }
     case "comparison": {
-      const alternatives = getRemainingPlayersByRole(state)[player.role]
-        .filter((candidate) => candidate.id !== player.id)
+      const comparisonRole = referencedPlayer?.role ?? player.role;
+      const comparisonId = referencedPlayer?.id ?? player.id;
+      const comparisonName = referencedPlayer?.name ?? player.name;
+      const alternatives = getRemainingPlayersByRole(state)[comparisonRole]
+        .filter((candidate) => candidate.id !== comparisonId)
         .sort((left, right) => right.rating - left.rating)
         .slice(0, 2);
       if (alternatives.length === 0) {
-        return `${player.name} has no remaining ${formatRole(player.role)} alternatives in the current queue.`;
+        return `${comparisonName} has no remaining ${formatRole(comparisonRole)} alternatives in the current queue.`;
       }
-      return `${player.name} is rated ${player.rating} with an estimated value of ${formatMoney(player.estimatedValueLakh)}. Remaining ${formatRole(player.role)} alternatives: ${alternatives.map((candidate) => `${candidate.name}, rated ${candidate.rating}, estimated ${formatMoney(candidate.estimatedValueLakh)}`).join("; ")}.`;
+      const comparisonSummary =
+        referencedPlayer?.source === "squad"
+          ? `${referencedPlayer.name} is already in the squad at ${formatMoney(referencedPlayer.acquisitionPriceLakh ?? 0)}`
+          : referencedPlayer
+            ? `${referencedPlayer.name} is rated ${referencedPlayer.rating ?? "unrated"} with an estimated value of ${formatMoney(referencedPlayer.estimatedValueLakh ?? 0)}`
+            : `${player.name} is rated ${player.rating} with an estimated value of ${formatMoney(player.estimatedValueLakh)}`;
+      return `${comparisonSummary}. Remaining ${formatRole(comparisonRole)} alternatives: ${alternatives.map((candidate) => `${candidate.name}, rated ${candidate.rating}, estimated ${formatMoney(candidate.estimatedValueLakh)}`).join("; ")}.`;
     }
     case "strategy-summary":
       return `The strategy is ${state.strategy.riskTolerance}, protects ${state.strategy.reservePercent}% of the initial purse, and prioritizes ${state.strategy.priorityRoles.map(formatRole).join(" and ")}. With the current squad and purse, the engine recommends ${recommendation.decision} on ${player.name} up to ${formatMoney(recommendation.maximumBidLakh)}.`;
@@ -169,9 +181,14 @@ function writeFallbackChunks(
 
 export function createDeterministicFallbackResponse(
   state: AuctionState,
-  question = ""
+  question = "",
+  resolution?: CopilotConversationResolution
 ): Response {
-  const message = buildDeterministicFallbackMessage(state, question);
+  const message = buildDeterministicFallbackMessage(
+    state,
+    question,
+    resolution
+  );
   return createTextResponse(message);
 }
 
@@ -188,7 +205,9 @@ export function createTextResponse(message: string): Response {
 export function createFallbackAwareResponse(
   modelStream: ReadableStream<UIMessageChunk>,
   getState: () => AuctionState,
-  getQuestion: () => string = () => ""
+  getQuestion: () => string = () => "",
+  getResolution: () => CopilotConversationResolution | undefined = () =>
+    undefined
 ): Response {
   let fallbackWritten = false;
   const stream = modelStream.pipeThrough(
@@ -203,7 +222,11 @@ export function createFallbackAwareResponse(
           fallbackWritten = true;
           writeFallbackChunks((fallbackChunk) => {
             controller.enqueue(fallbackChunk);
-          }, buildDeterministicFallbackMessage(getState(), getQuestion()));
+          }, buildDeterministicFallbackMessage(
+            getState(),
+            getQuestion(),
+            getResolution()
+          ));
         }
       }
     })
