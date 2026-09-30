@@ -87,6 +87,11 @@ deterministic retriever classifies the latest validated user question and
 injects the core guidance plus at most three relevant intent sections. This
 keeps prompts focused and makes each supported route regression-testable.
 
+`src/shared/copilot-capabilities.ts` is the single registry for intent patterns,
+example questions, starter-prompt visibility, icons, and required auction
+context sections. The retriever, prompt builder, deterministic fallback, and
+React empty state consume this registry instead of maintaining separate maps.
+
 A conversation resolver recognizes genuine follow-ups, carries forward the
 most recent supported intent, and resolves pronouns, unique player-name parts,
 and role aliases against the trusted auction state. Unrelated short questions

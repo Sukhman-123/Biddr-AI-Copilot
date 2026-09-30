@@ -10,25 +10,12 @@ import {
   type AuctionState
 } from "../domain";
 import type {
-  CopilotConversationResolution,
-  CopilotKnowledgeIntent
+  CopilotConversationResolution
 } from "./knowledge-base";
-
-const RECOMMENDATION_INTENTS: readonly CopilotKnowledgeIntent[] = [
-  "player-analysis",
-  "safe-bid",
-  "comparison",
-  "purse-reserve",
-  "strategy-summary",
-  "simulated-bid"
-];
-
-function hasAnyIntent(
-  intents: readonly CopilotKnowledgeIntent[],
-  candidates: readonly CopilotKnowledgeIntent[]
-): boolean {
-  return candidates.some((candidate) => intents.includes(candidate));
-}
+import {
+  getRequiredContextSections,
+  type AuctionContextSection
+} from "../shared/copilot-capabilities";
 
 export function buildAuctionChatContext(
   state: AuctionState,
@@ -37,86 +24,21 @@ export function buildAuctionChatContext(
   assertAuctionState(state);
   const includeFullContext = resolution === undefined;
   const intents = resolution?.intents ?? [];
+  const requiredSections = getRequiredContextSections(intents);
+  const includesSection = (section: AuctionContextSection) =>
+    includeFullContext || requiredSections.has(section);
   const currentPlayer = getCurrentPlayer(state);
   const composition = getTeamComposition(state);
-  const includeRecommendation =
-    includeFullContext || hasAnyIntent(intents, RECOMMENDATION_INTENTS);
-  const includePlayerDetails =
-    includeFullContext ||
-    hasAnyIntent(intents, [
-      "current-player",
-      "player-analysis",
-      "safe-bid",
-      "comparison",
-      "simulated-bid"
-    ]);
-  const includeBidState =
-    includeFullContext ||
-    hasAnyIntent(intents, [
-      "auction-status",
-      "current-player",
-      "player-analysis",
-      "safe-bid",
-      "comparison",
-      "purse-reserve",
-      "simulated-bid"
-    ]);
-  const includeStrategy =
-    includeFullContext ||
-    hasAnyIntent(intents, [
-      "player-analysis",
-      "safe-bid",
-      "comparison",
-      "squad-priority",
-      "purse-reserve",
-      "strategy-summary",
-      "simulated-bid"
-    ]);
-  const includeTeamComposition =
-    includeFullContext ||
-    hasAnyIntent(intents, [
-      "capabilities",
-      "team-composition",
-      "squad-priority",
-      "purse-reserve",
-      "remaining-players",
-      "comparison",
-      "strategy-summary"
-    ]);
-  const includeSquad =
-    includeFullContext || intents.includes("team-composition");
-  const includeRoleMarkets =
-    includeFullContext ||
-    hasAnyIntent(intents, [
-      "squad-priority",
-      "remaining-players",
-      "comparison",
-      "strategy-summary"
-    ]);
-  const includeRemainingPlayers =
-    includeFullContext ||
-    hasAnyIntent(intents, ["remaining-players", "comparison"]);
-  const includeFinancialSummary =
-    includeFullContext ||
-    hasAnyIntent(intents, [
-      "player-analysis",
-      "safe-bid",
-      "comparison",
-      "purse-reserve",
-      "strategy-summary",
-      "simulated-bid"
-    ]);
-  const includeSquadSummary =
-    includeFullContext ||
-    hasAnyIntent(intents, [
-      "capabilities",
-      "team-composition",
-      "squad-priority",
-      "purse-reserve",
-      "remaining-players",
-      "comparison",
-      "strategy-summary"
-    ]);
+  const includeRecommendation = includesSection("recommendation");
+  const includePlayerDetails = includesSection("active-player-details");
+  const includeBidState = includesSection("active-bid");
+  const includeStrategy = includesSection("strategy");
+  const includeTeamComposition = includesSection("team-composition");
+  const includeSquad = includesSection("squad");
+  const includeRoleMarkets = includesSection("role-markets");
+  const includeRemainingPlayers = includesSection("remaining-players");
+  const includeFinancialSummary = includesSection("financial-summary");
+  const includeSquadSummary = includesSection("squad-summary");
   const selectedRole =
     resolution?.referencedRole ??
     (intents.includes("comparison") ? currentPlayer?.role ?? null : null);

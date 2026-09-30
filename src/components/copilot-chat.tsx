@@ -25,16 +25,33 @@ import { isProminentToolActivity } from "../client/tool-activity-presentation";
 import { parseBidRecommendation } from "../client/tool-presentation";
 import { MAX_USER_MESSAGE_CHARACTERS } from "../agent/limits";
 import {
+  getCopilotStarterCapabilities,
+  type CopilotStarterIcon
+} from "../shared/copilot-capabilities";
+import {
   ToolActivity,
   ToolActivityGroup
 } from "./tool-activity";
 
-const STARTER_PROMPTS = [
-  { label: "Analyze this player", Icon: CrosshairIcon },
-  { label: "What’s our maximum safe bid?", Icon: CurrencyInrIcon },
-  { label: "Which squad role should we target next?", Icon: UsersThreeIcon },
-  { label: "Summarize our auction strategy", Icon: ChartDonutIcon }
-] as const;
+const STARTER_ICONS = {
+  analysis: CrosshairIcon,
+  currency: CurrencyInrIcon,
+  roles: UsersThreeIcon,
+  strategy: ChartDonutIcon
+} as const satisfies Record<CopilotStarterIcon, typeof CrosshairIcon>;
+
+const STARTER_PROMPTS = getCopilotStarterCapabilities().flatMap((capability) => {
+  const label = capability.examples[0];
+  if (!capability.starterIcon || !label) return [];
+
+  return [
+    {
+      intent: capability.id,
+      label,
+      Icon: STARTER_ICONS[capability.starterIcon]
+    }
+  ];
+});
 
 const CHARACTER_COUNTER_THRESHOLD = Math.floor(
   MAX_USER_MESSAGE_CHARACTERS * 0.8
@@ -342,9 +359,9 @@ export function CopilotChat({
             <h3>Make the next call</h3>
             <p>Get guidance grounded in your live auction state.</p>
             <div className="starter-prompts" aria-label="Suggested questions">
-              {STARTER_PROMPTS.map(({ label, Icon }) => (
+              {STARTER_PROMPTS.map(({ intent, label, Icon }) => (
                 <button
-                  key={label}
+                  key={intent}
                   type="button"
                   onClick={() => sendText(label)}
                   disabled={!connected || busy}

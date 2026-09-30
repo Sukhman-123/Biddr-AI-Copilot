@@ -17,9 +17,12 @@ import {
 import {
   classifyCopilotQuestion,
   findMentionedRole,
-  type CopilotConversationResolution,
-  type CopilotKnowledgeIntent
+  type CopilotConversationResolution
 } from "./knowledge-base";
+import {
+  getCopilotStarterCapabilities,
+  type CopilotKnowledgeIntent
+} from "../shared/copilot-capabilities";
 
 const FALLBACK_TEXT_PART_ID = "biddr-deterministic-fallback";
 
@@ -73,7 +76,12 @@ function buildIntentFallback(
   const referencedPlayer = resolution?.referencedPlayer ?? null;
 
   if (intent === "capabilities") {
-    return "You can ask about the current player, safe and next bids, squad gaps, role priorities, purse and reserve, remaining players, comparisons, strategy, or a simulated bid.";
+    const examples = getCopilotStarterCapabilities().flatMap((capability) =>
+      capability.starterIcon && capability.examples[0]
+        ? [capability.examples[0]]
+        : []
+    );
+    return `You can ask about the current player, safe and next bids, squad gaps, role priorities, purse and reserve, remaining players, comparisons, strategy, or a simulated bid. Try: ${examples.map((example) => `“${example}”`).join(", ")}.`;
   }
   if (intent === "unsupported") {
     return "I’m focused on this fictional auction. Ask me about the current player, bidding, the squad, purse, remaining players, or strategy.";

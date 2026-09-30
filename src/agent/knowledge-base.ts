@@ -5,25 +5,14 @@ import {
   type AuctionState,
   type PlayerRole
 } from "../domain";
+import {
+  COPILOT_CAPABILITIES,
+  COPILOT_KNOWLEDGE_INTENTS,
+  type CopilotKnowledgeIntent
+} from "../shared/copilot-capabilities";
 
-export const COPILOT_KNOWLEDGE_INTENTS = [
-  "capabilities",
-  "auction-status",
-  "current-player",
-  "team-composition",
-  "player-analysis",
-  "safe-bid",
-  "squad-priority",
-  "purse-reserve",
-  "remaining-players",
-  "comparison",
-  "strategy-summary",
-  "simulated-bid",
-  "unsupported"
-] as const;
-
-export type CopilotKnowledgeIntent =
-  (typeof COPILOT_KNOWLEDGE_INTENTS)[number];
+export { COPILOT_KNOWLEDGE_INTENTS };
+export type { CopilotKnowledgeIntent };
 
 type KnowledgeSectionId = "core" | CopilotKnowledgeIntent;
 
@@ -62,106 +51,6 @@ const ROLE_PATTERNS: ReadonlyArray<[PlayerRole, RegExp]> = [
   ["batter", /\b(?:batters?|batsmen|batswomen)\b/i]
 ];
 
-const INTENT_PATTERNS: ReadonlyArray<{
-  intent: Exclude<CopilotKnowledgeIntent, "unsupported">;
-  patterns: readonly RegExp[];
-}> = [
-  {
-    intent: "simulated-bid",
-    patterns: [
-      /\b(?:prepare|place|make|submit|commit|confirm|accept)\b.*\bbid\b/i,
-      /\bbid\b.*\b(?:₹|rs\.?|inr|lakh|lakhs|crore|crores|cr)\b/i
-    ]
-  },
-  {
-    intent: "safe-bid",
-    patterns: [
-      /\b(?:maximum|max|safe|ceiling|limit|headroom|next)\b.*\bbid\b/i,
-      /\b(?:bid|spend|go)\b.*\b(?:maximum|max|safe|ceiling|limit|higher|high)\b/i,
-      /\bhow (?:high|far)\b/i,
-      /\bhow much can we bid\b/i
-    ]
-  },
-  {
-    intent: "auction-status",
-    patterns: [
-      /\b(?:auction status|auction progress|current lot|which lot|lot number)\b/i,
-      /\b(?:current|latest) bid(?:der)?\b/i,
-      /\bis the auction (?:active|complete|finished|over)\b/i
-    ]
-  },
-  {
-    intent: "current-player",
-    patterns: [
-      /\b(?:who|which) is the current player\b/i,
-      /\bcurrent player(?:'s)?\b.*\b(?:name|role|style|rating|base price|estimated value|details?)\b/i,
-      /\b(?:name|role|style|rating|base price|estimated value)\b.*\bcurrent player\b/i
-    ]
-  },
-  {
-    intent: "team-composition",
-    patterns: [
-      /\b(?:team|squad) composition\b/i,
-      /\b(?:who|which players?) (?:is|are) in (?:our|the) (?:team|squad)\b/i,
-      /\b(?:squad size|open slots?|players? (?:do we have|in our squad))\b/i
-    ]
-  },
-  {
-    intent: "player-analysis",
-    patterns: [
-      /\b(?:analy[sz]e|assess|evaluate|recommend)\b.*\b(?:player|him|her|lot)\b/i,
-      /\b(?:should|do) we bid\b/i,
-      /\b(?:worth|value|valuation)\b/i,
-      /\b(?:bid|caution|pass)\b.*\bdecision\b/i
-    ]
-  },
-  {
-    intent: "squad-priority",
-    patterns: [
-      /\b(?:role|position|squad gap|need|priority|prioritise|prioritize|target)\b/i,
-      /\bwhat should we (?:target|buy|fill) next\b/i
-    ]
-  },
-  {
-    intent: "purse-reserve",
-    patterns: [
-      /\b(?:purse|budget|reserve|afford|cash|funds?|spendable|spending)\b/i,
-      /\bhow much (?:is left|do we have|can we spend)\b/i
-    ]
-  },
-  {
-    intent: "remaining-players",
-    patterns: [
-      /\b(?:remaining|available|upcoming|left|next)\b.*\bplayers?\b/i,
-      /\bplayers?\b.*\b(?:remaining|available|upcoming|left)\b/i,
-      /\b(?:remaining|available|upcoming|left|next)\b.*\b(?:batters?|wicketkeepers?|all[- ]rounders?|fast bowlers?|pacers?|spin bowlers?|spinners?)\b/i,
-      /\bwho (?:is|are)(?: still)? (?:available|left|up next)\b/i,
-      /\b(?:batters?|wicketkeepers?|all[- ]rounders?|fast bowlers?|pacers?|spin bowlers?|spinners?)\b.*\b(?:remaining|available|left)\b/i
-    ]
-  },
-  {
-    intent: "comparison",
-    patterns: [
-      /\b(?:compare|comparison|versus|vs\.?|alternative|better option)\b/i,
-      /\bbetter than\b/i
-    ]
-  },
-  {
-    intent: "strategy-summary",
-    patterns: [
-      /\b(?:strategy|plan|approach|risk tolerance|preference|priorities)\b/i,
-      /\bsummari[sz]e\b.*\bauction\b/i
-    ]
-  },
-  {
-    intent: "capabilities",
-    patterns: [
-      /\bwhat can (?:you|i) (?:do|ask)\b/i,
-      /\b(?:help|capabilities|supported questions|examples?)\b/i
-    ]
-  }
-];
-
 function parseKnowledgeSections(source: string): ReadonlyMap<KnowledgeSectionId, string> {
   const sections = new Map<KnowledgeSectionId, string>();
   const matches = [...source.matchAll(/^## ([a-z-]+)\s*$/gm)];
@@ -198,9 +87,9 @@ export function classifyCopilotQuestion(
   const normalizedQuestion = question.trim();
   if (!normalizedQuestion) return ["unsupported"];
 
-  const matches = INTENT_PATTERNS.filter(({ patterns }) =>
+  const matches = COPILOT_CAPABILITIES.filter(({ patterns }) =>
     patterns.some((pattern) => pattern.test(normalizedQuestion))
-  ).map(({ intent }) => intent);
+  ).map(({ id }) => id);
 
   return matches.length > 0 ? matches.slice(0, 3) : ["unsupported"];
 }

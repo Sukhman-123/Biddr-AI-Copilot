@@ -130,9 +130,9 @@ guidance. Headings are stable intent IDs used by the tested retriever. Live
 players, bids, purse values, and recommendations do not belong in this file;
 they are generated from the deterministic auction state for every request.
 
-When adding or renaming a `##` intent section, update the typed intent catalog
-and routing patterns in `src/agent/knowledge-base.ts`, then add representative
-questions to `test/agent/knowledge-base.test.ts`.
+When adding or renaming a `##` intent section, update the single typed registry
+in `src/shared/copilot-capabilities.ts`, then add representative questions to
+`test/agent/knowledge-base.test.ts`.
 
 ## Continuous deployment
 
